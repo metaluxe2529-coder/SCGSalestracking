@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SCG Sales — My Shops</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --blue: #003B7A;
+      --blue-light: #0056B3;
+      --gold: #F5A623;
+      --green: #27AE60;
+      --red: #E74C3C;
+      --gray: #F5F7FA;
+      --text: #1A1A2E;
+      --sub: #6B7280;
+    }
+    body { font-family: 'Noto Sans Thai', sans-serif; background: var(--gray); color: var(--text); min-height: 100vh; }
+
+    /* Header */
+    .header {
+      background: var(--blue);
+      color: white;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-avatar {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      border: 2px solid var(--gold);
+      object-fit: cover;
+      background: var(--blue-light);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 16px; color: white;
+      overflow: hidden;
+    }
+    .header-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .header-info { flex: 1; }
+    .header-name { font-weight: 700; font-size: 15px; }
+    .header-role { font-size: 12px; opacity: 0.7; }
+    .header-date { font-size: 12px; text-align: right; opacity: 0.8; }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      background: white;
+      border-bottom: 2px solid #E5E7EB;
+    }
+    .tab {
+      flex: 1;
+      padding: 12px;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--sub);
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      transition: all 0.2s;
+    }
+    .tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+
+    /* Content */
+    .page { display: none; }
+    .page.active { display: block; }
+    .container { padding: 16px; max-width: 480px; margin: 0 auto; }
+
+    /* Summary Bar */
+    .summary-bar {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .summary-card {
+      background: white;
+      border-radius: 12px;
+      padding: 12px;
+      text-align: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .summary-num { font-size: 24px; font-weight: 900; }
+    .summary-num.blue { color: var(--blue); }
+    .summary-num.green { color: var(--green); }
+    .summary-num.gold { color: var(--gold); }
+    .summary-label { font-size: 11px; color: var(--sub); margin-top: 2px; }
+
+    /* Shop Card */
+    .shop-card {
+      background: white;
+      border-radius: 12px;
+      margin-bottom: 12px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      border-left: 4px solid #E5E7EB;
+    }
+    .shop-card.not-visited { border-left-color: #E5E7EB; }
+    .shop-card.checked-in  { border-left-color: var(--gold); }
+    .shop-card.checked-out { border-left-color: var(--green); }
+
+    .shop-card-top {
+      padding: 14px 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .shop-icon {
+      width: 42px; height: 42px;
+      border-radius: 10px;
+      background: var(--blue);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .shop-info { flex: 1; min-width: 0; }
+    .shop-name { font-weight: 700; font-size: 15px; margin-bottom: 2px; }
+    .shop-address { font-size: 12px; color: var(--sub); }
+    .shop-contact { font-size: 12px; color: var(--sub); margin-top: 2px; }
+    .shop-status-badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 20px;
+      white-space: nowrap;
+    }
+    .badge-pending  { background: #F3F4F6; color: #6B7280; }
+    .badge-in       { background: #FEF3C7; color: #D97706; }
+    .badge-out      { background: #D1FAE5; color: #059669; }
+
+    .shop-card-footer {
+      padding: 0 16px 14px;
+      display: flex;
+      gap: 8px;
+    }
+    .btn {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-checkin  { background: var(--blue); color: white; }
+    .btn-checkout { background: var(--green); color: white; }
+    .btn-outline  { background: white; color: var(--sub); border: 1px solid #E5E7EB; }
+    .btn-sm { font-size: 12px; padding: 7px 10px; flex: none; }
+
+    .checkin-time {
+      font-size: 11px;
+      color: var(--sub);
+      padding: 0 16px 10px;
+    }
+
+    /* Empty */
+    .empty {
+      text-align: center;
+      padding: 60px 24px;
+      color: var(--sub);
+    }
+    .empty-icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-title { font-size: 16px; font-weight: 700; margin-bottom: 6px; color: var(--text); }
+    .empty-sub { font-size: 14px; }
+
+    /* Modal overlay */
+    .modal-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 200;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: white;
+      border-radius: 20px 20px 0 0;
+      width: 100%;
+      max-width: 480px;
+      padding: 24px 20px 32px;
+      animation: slideUp 0.3s ease;
+    }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    .modal-handle {
+      width: 40px; height: 4px;
+      background: #E5E7EB;
+      border-radius: 2px;
+      margin: 0 auto 20px;
+    }
+    .modal-title { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
+    .modal-shop  { font-size: 14px; color: var(--sub); margin-bottom: 20px; }
+
+    .form-group { margin-bottom: 14px; }
+    .form-label { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px; display: block; }
+    .form-input, .form-textarea {
+      width: 100%;
+      border: 1.5px solid #E5E7EB;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-input:focus, .form-textarea:focus { border-color: var(--blue); }
+    .form-textarea { resize: none; height: 80px; }
+
+    .photo-preview {
+      width: 100%;
+      height: 140px;
+      border: 2px dashed #D1D5DB;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--sub);
+      font-size: 13px;
+      gap: 6px;
+      overflow: hidden;
+      position: relative;
+    }
+    .photo-preview img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      position: absolute; inset: 0;
+    }
+    .photo-preview.has-photo { border: none; }
+    .photo-preview-icon { font-size: 28px; }
+
+    .gps-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 14px;
+    }
+    .gps-loading { background: #F3F4F6; color: var(--sub); }
+    .gps-ok      { background: #D1FAE5; color: #059669; }
+    .gps-far     { background: #FEE2E2; color: #DC2626; }
+
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+
+    /* History */
+    .history-card {
+      background: white;
+      border-radius: 12px;
+      margin-bottom: 10px;
+      padding: 14px 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .history-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+    .history-shop { font-weight: 700; font-size: 14px; }
+    .history-time { font-size: 12px; color: var(--sub); }
+    .history-detail { font-size: 12px; color: var(--sub); margin-top: 4px; }
+    .history-photos { display: flex; gap: 8px; margin-top: 8px; }
+    .history-photo {
+      width: 60px; height: 60px;
+      border-radius: 8px;
+      object-fit: cover;
+      cursor: pointer;
+    }
+
+    /* Loading */
+    .loading { text-align: center; padding: 40px; color: var(--sub); }
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid #E5E7EB;
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px; left: 50%;
+      transform: translateX(-50%);
+      background: #1A1A2E;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 24px;
+      font-size: 14px;
+      font-weight: 600;
+      z-index: 999;
+      opacity: 0;
+      transition: opacity 0.3s;
+      white-space: nowrap;
+    }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-avatar" id="hdr-avatar">
+    <span id="hdr-initial">S</span>
+  </div>
+  <div class="header-info">
+    <div class="header-name" id="hdr-name">Sales</div>
+    <div class="header-role">Sales Person</div>
+  </div>
+  <div class="header-date" id="hdr-date"></div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('today')">📋 วันนี้</div>
+  <div class="tab" onclick="switchTab('history')">📅 ประวัติ</div>
+</div>
+
+<!-- Today Tab -->
+<div class="page active" id="page-today">
+  <div class="container">
+    <div class="summary-bar">
+      <div class="summary-card">
+        <div class="summary-num blue" id="sum-total">—</div>
+        <div class="summary-label">ร้านทั้งหมด</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-num green" id="sum-done">—</div>
+        <div class="summary-label">เยี่ยมแล้ว</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-num gold" id="sum-pending">—</div>
+        <div class="summary-label">ยังไม่เยี่ยม</div>
+      </div>
+    </div>
+    <div id="shops-list">
+      <div class="loading"><div class="spinner"></div>กำลังโหลด...</div>
+    </div>
+  </div>
+</div>
+
+<!-- History Tab -->
+<div class="page" id="page-history">
+  <div class="container">
+    <div id="history-list">
+      <div class="loading"><div class="spinner"></div>กำลังโหลด...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Check-in / Check-out Modal -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-title">Check In</div>
+    <div class="modal-shop" id="modal-shop-name"></div>
+
+    <div class="gps-status gps-loading" id="gps-status">
+      <span>📡</span> กำลังระบุตำแหน่ง...
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">📝 หมายเหตุ</label>
+      <textarea class="form-textarea" id="modal-notes" placeholder="บันทึกเพิ่มเติม (ไม่บังคับ)"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">📷 ถ่ายรูป</label>
+      <div class="photo-preview" id="photo-preview" onclick="triggerPhoto()">
+        <div class="photo-preview-icon">📷</div>
+        <span>แตะเพื่อถ่ายรูป</span>
+      </div>
+      <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto(event)" />
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModalDirect()">ยกเลิก</button>
+      <button class="btn btn-checkin" id="modal-submit-btn" onclick="submitModal()" disabled>บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<script>
+  const SUPABASE_URL  = 'https://vuqcoadeexyqmaoldkzt.supabase.co';
+  const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1cWNvYWRlZXh5cW1hb2xka3p0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2NzE2NjQsImV4cCI6MjA5NjI0NzY2NH0.jLnRNjI7wq6fJ_hFUpO2OZiN39wQAsU-IhrYC8DOZsU';
+  const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+  let S = { session: null, shops: [], modalMode: null, modalShop: null, gps: null, photoFile: null, photoBlob: null };
+
+  // ── Init ──────────────────────────────────────────────
+  async function init() {
+    const raw = localStorage.getItem('scg_session');
+    if (!raw) { location.replace('index.html'); return; }
+    S.session = JSON.parse(raw);
+
+    // Header
+    document.getElementById('hdr-name').textContent = S.session.display_name;
+    document.getElementById('hdr-initial').textContent = S.session.display_name[0] || 'S';
+    if (S.session.picture_url) {
+      document.getElementById('hdr-avatar').innerHTML = `<img src="${S.session.picture_url}" />`;
+    }
+    const now = new Date();
+    document.getElementById('hdr-date').textContent = now.toLocaleDateString('th-TH', { weekday:'short', day:'numeric', month:'short' });
+
+    await loadToday();
+  }
+
+  // ── Tab Switch ────────────────────────────────────────
+  function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach((t, i) => {
+      t.classList.toggle('active', (i === 0 && tab === 'today') || (i === 1 && tab === 'history'));
+    });
+    document.getElementById('page-today').classList.toggle('active', tab === 'today');
+    document.getElementById('page-history').classList.toggle('active', tab === 'history');
+    if (tab === 'history') loadHistory();
+  }
+
+  // ── Load Today's Shops ────────────────────────────────
+  async function loadToday() {
+    const today = new Date().toISOString().slice(0, 10);
+    const { data, error } = await db.rpc('get_sales_dashboard', {
+      p_line_user_id: S.session.line_user_id,
+      p_date: today,
+    });
+    if (error || !data?.ok) {
+      document.getElementById('shops-list').innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">โหลดข้อมูลไม่ได้</div></div>`;
+      return;
+    }
+    S.shops = data.shops || [];
+    renderShops();
+  }
+
+  function renderShops() {
+    const total   = S.shops.length;
+    const done    = S.shops.filter(s => s.visit_status === 'checked_out').length;
+    const pending = S.shops.filter(s => !s.visit_id).length;
+
+    document.getElementById('sum-total').textContent   = total;
+    document.getElementById('sum-done').textContent    = done;
+    document.getElementById('sum-pending').textContent = pending;
+
+    if (total === 0) {
+      document.getElementById('shops-list').innerHTML = `
+        <div class="empty">
+          <div class="empty-icon">🏪</div>
+          <div class="empty-title">ไม่มีร้านที่ต้องเยี่ยมวันนี้</div>
+          <div class="empty-sub">ติดต่อผู้จัดการเพื่อขอรับมอบหมาย</div>
+        </div>`;
+      return;
+    }
+
+    document.getElementById('shops-list').innerHTML = S.shops.map(shop => {
+      const status = !shop.visit_id ? 'not-visited' : shop.visit_status === 'checked_out' ? 'checked-out' : 'checked-in';
+      const badge  = status === 'not-visited' ? '<span class="shop-status-badge badge-pending">⬜ ยังไม่เยี่ยม</span>'
+                   : status === 'checked-in'  ? '<span class="shop-status-badge badge-in">🟡 Check-in แล้ว</span>'
+                   :                            '<span class="shop-status-badge badge-out">✅ เสร็จแล้ว</span>';
+      const timeRow = shop.checkin_at
+        ? `<div class="checkin-time">⏱ Check-in: ${fmtTime(shop.checkin_at)}${shop.checkout_at ? ' · Check-out: ' + fmtTime(shop.checkout_at) : ''}</div>`
+        : '';
+      const footer  = status === 'not-visited'
+        ? `<div class="shop-card-footer">
+             <button class="btn btn-checkin" onclick="openModal('checkin', ${shop.shop_id}, '${esc(shop.shop_name)}', ${shop.assignment_id})">📍 Check In</button>
+           </div>`
+        : status === 'checked-in'
+        ? `<div class="shop-card-footer">
+             <button class="btn btn-checkout" onclick="openModal('checkout', ${shop.shop_id}, '${esc(shop.shop_name)}', ${shop.assignment_id}, ${shop.visit_id})">🚪 Check Out</button>
+           </div>`
+        : '';
+      return `
+        <div class="shop-card ${status}">
+          <div class="shop-card-top">
+            <div class="shop-icon">🏪</div>
+            <div class="shop-info">
+              <div class="shop-name">${esc(shop.shop_name)}</div>
+              ${shop.shop_address ? `<div class="shop-address">📍 ${esc(shop.shop_address)}</div>` : ''}
+              ${shop.contact_name ? `<div class="shop-contact">👤 ${esc(shop.contact_name)}${shop.contact_phone ? ' · ' + esc(shop.contact_phone) : ''}</div>` : ''}
+            </div>
+            ${badge}
+          </div>
+          ${timeRow}
+          ${footer}
+        </div>`;
+    }).join('');
+  }
+
+  // ── Load History ───────────────────────────────────────
+  async function loadHistory() {
+    document.getElementById('history-list').innerHTML = '<div class="loading"><div class="spinner"></div>กำลังโหลด...</div>';
+    const to   = new Date().toISOString().slice(0, 10);
+    const from = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+    const { data, error } = await db.rpc('get_visit_history', {
+      p_from: from, p_to: to,
+      p_staff_id: S.session.staff_id,
+    });
+    if (error || !data?.ok || data.visits.length === 0) {
+      document.getElementById('history-list').innerHTML = `
+        <div class="empty"><div class="empty-icon">📅</div>
+        <div class="empty-title">ยังไม่มีประวัติ</div>
+        <div class="empty-sub">30 วันที่ผ่านมา</div></div>`;
+      return;
+    }
+    document.getElementById('history-list').innerHTML = data.visits.map(v => `
+      <div class="history-card">
+        <div class="history-card-top">
+          <div>
+            <div class="history-shop">🏪 ${esc(v.shop_name)}</div>
+            <div class="history-detail">📍 ${esc(v.shop_address || '—')}</div>
+          </div>
+          <div class="history-time">${fmtDate(v.checkin_at)}</div>
+        </div>
+        <div class="history-detail">
+          ⏱ Check-in: ${fmtTime(v.checkin_at)}
+          ${v.checkout_at ? ' · Check-out: ' + fmtTime(v.checkout_at) : ' · <span style="color:#D97706">ยังไม่ check-out</span>'}
+          ${v.duration_minutes ? ' · ' + v.duration_minutes + ' นาที' : ''}
+        </div>
+        ${v.checkin_notes ? `<div class="history-detail" style="margin-top:4px">📝 ${esc(v.checkin_notes)}</div>` : ''}
+        <div class="history-photos">
+          ${v.checkin_photo_url  ? `<img class="history-photo" src="${v.checkin_photo_url}" onclick="viewPhoto('${v.checkin_photo_url}')" />` : ''}
+          ${v.checkout_photo_url ? `<img class="history-photo" src="${v.checkout_photo_url}" onclick="viewPhoto('${v.checkout_photo_url}')" />` : ''}
+        </div>
+      </div>`).join('');
+  }
+
+  // ── Modal ─────────────────────────────────────────────
+  function openModal(mode, shopId, shopName, assignmentId, visitId = null) {
+    S.modalMode       = mode;
+    S.modalShop       = { shopId, shopName, assignmentId, visitId };
+    S.gps             = null;
+    S.photoFile       = null;
+    S.photoBlob       = null;
+
+    document.getElementById('modal-title').textContent    = mode === 'checkin' ? '📍 Check In' : '🚪 Check Out';
+    document.getElementById('modal-shop-name').textContent = shopName;
+    document.getElementById('modal-notes').value          = '';
+    document.getElementById('modal-submit-btn').disabled  = true;
+    document.getElementById('modal-submit-btn').textContent = mode === 'checkin' ? '✅ Check In' : '✅ Check Out';
+    document.getElementById('modal-submit-btn').className  = `btn ${mode === 'checkin' ? 'btn-checkin' : 'btn-checkout'}`;
+    document.getElementById('photo-preview').innerHTML    = '<div class="photo-preview-icon">📷</div><span>แตะเพื่อถ่ายรูป</span>';
+    document.getElementById('photo-preview').classList.remove('has-photo');
+    document.getElementById('modal-overlay').classList.add('open');
+
+    getGPS();
+  }
+
+  function closeModal(e) { if (e.target === document.getElementById('modal-overlay')) closeModalDirect(); }
+  function closeModalDirect() { document.getElementById('modal-overlay').classList.remove('open'); }
+
+  function getGPS() {
+    const el = document.getElementById('gps-status');
+    el.className = 'gps-status gps-loading';
+    el.innerHTML = '<span>📡</span> กำลังระบุตำแหน่ง...';
+
+    if (!navigator.geolocation) {
+      el.className = 'gps-status gps-far';
+      el.innerHTML = '<span>❌</span> ไม่รองรับ GPS';
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(pos => {
+      S.gps = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy };
+      el.className = 'gps-status gps-ok';
+      el.innerHTML = `<span>✅</span> ระบุตำแหน่งได้ (±${Math.round(S.gps.accuracy)}m)`;
+      document.getElementById('modal-submit-btn').disabled = false;
+    }, err => {
+      el.className = 'gps-status gps-far';
+      el.innerHTML = '<span>❌</span> ไม่สามารถระบุตำแหน่งได้ — ลองใหม่';
+    }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+  }
+
+  function triggerPhoto() { document.getElementById('photo-input').click(); }
+
+  function handlePhoto(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    S.photoFile = file;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const prev = document.getElementById('photo-preview');
+      prev.innerHTML = `<img src="${ev.target.result}" />`;
+      prev.classList.add('has-photo');
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function submitModal() {
+    if (!S.gps) { showToast('❌ รอระบุ GPS ก่อน'); return; }
+    const btn = document.getElementById('modal-submit-btn');
+    btn.disabled = true;
+    btn.textContent = 'กำลังบันทึก...';
+
+    try {
+      let photoUrl = null;
+      if (S.photoFile) {
+        const ext  = S.photoFile.name.split('.').pop();
+        const path = `${S.session.staff_id}/${Date.now()}.${ext}`;
+        const { error: upErr } = await db.storage.from('visit-photos').upload(path, S.photoFile, { contentType: S.photoFile.type, upsert: true });
+        if (!upErr) {
+          const { data: urlData } = db.storage.from('visit-photos').getPublicUrl(path);
+          photoUrl = urlData?.publicUrl || null;
+        }
+      }
+
+      const notes = document.getElementById('modal-notes').value.trim() || null;
+      let res;
+
+      if (S.modalMode === 'checkin') {
+        const { data, error } = await db.rpc('checkin_visit', {
+          p_line_user_id:  S.session.line_user_id,
+          p_shop_id:       S.modalShop.shopId,
+          p_lat:           S.gps.lat,
+          p_lng:           S.gps.lng,
+          p_accuracy:      S.gps.accuracy,
+          p_notes:         notes,
+          p_photo_url:     photoUrl,
+          p_assignment_id: S.modalShop.assignmentId,
+        });
+        res = { data, error };
+      } else {
+        const { data, error } = await db.rpc('checkout_visit', {
+          p_line_user_id: S.session.line_user_id,
+          p_visit_id:     S.modalShop.visitId,
+          p_lat:          S.gps.lat,
+          p_lng:          S.gps.lng,
+          p_accuracy:     S.gps.accuracy,
+          p_notes:        notes,
+          p_photo_url:    photoUrl,
+        });
+        res = { data, error };
+      }
+
+      if (res.error || !res.data?.ok) {
+        const reason = res.data?.reason || res.error?.message || 'ไม่ทราบสาเหตุ';
+        if (reason === 'outside_radius') {
+          showToast(`❌ อยู่นอกรัศมี 200m (ห่าง ${res.data.distance_m}m)`);
+        } else if (reason === 'already_checked_in_today') {
+          showToast('❌ Check-in ที่ร้านนี้แล้ววันนี้');
+        } else {
+          showToast(`❌ บันทึกไม่สำเร็จ: ${reason}`);
+        }
+        btn.disabled = false;
+        btn.textContent = S.modalMode === 'checkin' ? '✅ Check In' : '✅ Check Out';
+        return;
+      }
+
+      closeModalDirect();
+      showToast(S.modalMode === 'checkin' ? '✅ Check In สำเร็จ!' : `✅ Check Out สำเร็จ! (${res.data.duration_minutes} นาที)`);
+      await loadToday();
+
+    } catch (err) {
+      showToast('❌ เกิดข้อผิดพลาด: ' + err.message);
+      btn.disabled = false;
+    }
+  }
+
+  // ── Utils ─────────────────────────────────────────────
+  function esc(s) { return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function fmtTime(iso) { return new Date(iso).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }); }
+  function fmtDate(iso) { return new Date(iso).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' }); }
+  function viewPhoto(url) { window.open(url, '_blank'); }
+
+  let _toastTimer;
+  function showToast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+  }
+
+  init();
+</script>
+</body>
+</html>

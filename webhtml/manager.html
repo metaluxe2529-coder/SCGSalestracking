@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SCG Manager Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --blue: #003B7A;
+      --blue-light: #0056B3;
+      --gold: #F5A623;
+      --green: #27AE60;
+      --red: #E74C3C;
+      --gray: #F5F7FA;
+      --text: #1A1A2E;
+      --sub: #6B7280;
+      --border: #E5E7EB;
+    }
+    body { font-family: 'Noto Sans Thai', sans-serif; background: var(--gray); color: var(--text); min-height: 100vh; }
+
+    /* Header */
+    .header {
+      background: var(--blue);
+      color: white;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .header-avatar {
+      width: 38px; height: 38px; border-radius: 50%;
+      border: 2px solid var(--gold);
+      overflow: hidden; display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 15px; color: white; background: var(--blue-light); flex-shrink: 0;
+    }
+    .header-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .header-info { flex: 1; }
+    .header-name { font-weight: 700; font-size: 14px; }
+    .header-role { font-size: 11px; opacity: 0.7; }
+    .header-tag {
+      background: var(--gold); color: #1A1A2E;
+      font-size: 11px; font-weight: 700;
+      padding: 3px 8px; border-radius: 12px;
+    }
+
+    /* Tabs */
+    .tabs { display: flex; background: white; border-bottom: 2px solid var(--border); overflow-x: auto; }
+    .tab {
+      flex-shrink: 0;
+      padding: 11px 16px;
+      font-size: 13px; font-weight: 600;
+      color: var(--sub); cursor: pointer;
+      border-bottom: 3px solid transparent; margin-bottom: -2px;
+      white-space: nowrap; transition: all 0.2s;
+    }
+    .tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+
+    .page { display: none; }
+    .page.active { display: block; }
+    .container { padding: 16px; max-width: 760px; margin: 0 auto; }
+
+    /* Cards */
+    .card {
+      background: white; border-radius: 12px;
+      padding: 16px; margin-bottom: 14px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .card-title { font-size: 15px; font-weight: 800; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+
+    /* Buttons */
+    .btn {
+      padding: 9px 16px; border: none; border-radius: 8px;
+      font-size: 13px; font-weight: 700; cursor: pointer;
+      transition: opacity 0.2s; display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-primary  { background: var(--blue); color: white; }
+    .btn-success  { background: var(--green); color: white; }
+    .btn-danger   { background: var(--red); color: white; }
+    .btn-outline  { background: white; color: var(--sub); border: 1px solid var(--border); }
+    .btn-gold     { background: var(--gold); color: #1A1A2E; }
+    .btn-sm { font-size: 12px; padding: 6px 10px; }
+
+    /* Forms */
+    .form-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+    .form-group { flex: 1; min-width: 140px; }
+    .form-label { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 4px; display: block; }
+    .form-input, .form-select, .form-textarea {
+      width: 100%; border: 1.5px solid var(--border);
+      border-radius: 8px; padding: 9px 12px;
+      font-size: 13px; font-family: inherit; outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--blue); }
+    .form-textarea { resize: none; height: 70px; }
+
+    /* Table */
+    .tbl-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th {
+      background: #F9FAFB; text-align: left;
+      padding: 10px 12px; font-weight: 700;
+      color: var(--sub); border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    td {
+      padding: 10px 12px; border-bottom: 1px solid #F3F4F6;
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #FAFBFC; }
+
+    .badge {
+      display: inline-block; padding: 2px 8px;
+      border-radius: 12px; font-size: 11px; font-weight: 700;
+    }
+    .badge-in  { background: #FEF3C7; color: #D97706; }
+    .badge-out { background: #D1FAE5; color: #059669; }
+    .badge-none { background: #F3F4F6; color: #6B7280; }
+
+    /* Photo thumb */
+    .thumb {
+      width: 44px; height: 44px; border-radius: 6px;
+      object-fit: cover; cursor: pointer;
+    }
+
+    /* Staff avatar tiny */
+    .staff-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .staff-chip img, .staff-chip .chip-avatar {
+      width: 26px; height: 26px; border-radius: 50%; object-fit: cover;
+      background: var(--blue-light); color: white; font-size: 11px;
+      display: flex; align-items: center; justify-content: center; font-weight: 700;
+    }
+
+    /* Filter bar */
+    .filter-bar {
+      display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end;
+      margin-bottom: 14px;
+    }
+    .filter-bar .form-group { min-width: 120px; }
+
+    /* CSV drop zone */
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 32px;
+      text-align: center;
+      cursor: pointer;
+      color: var(--sub);
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color: var(--blue); background: #EEF4FF;
+    }
+    .drop-zone-icon { font-size: 36px; margin-bottom: 8px; }
+    .drop-zone-text { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+    .drop-zone-sub  { font-size: 12px; }
+
+    /* Preview rows (import) */
+    .import-preview {
+      max-height: 220px; overflow-y: auto;
+      border: 1px solid var(--border); border-radius: 8px;
+      margin-top: 12px;
+    }
+
+    /* Loading / empty */
+    .loading { text-align: center; padding: 40px; color: var(--sub); }
+    .spinner {
+      width: 28px; height: 28px;
+      border: 3px solid var(--border); border-top-color: var(--blue);
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+      margin: 0 auto 10px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .empty { text-align: center; padding: 40px 24px; color: var(--sub); }
+    .empty-icon { font-size: 40px; margin-bottom: 10px; }
+
+    /* Summary pills */
+    .summary-row {
+      display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px;
+    }
+    .pill {
+      background: white; border-radius: 20px;
+      padding: 8px 16px; font-size: 13px; font-weight: 700;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .pill span { font-size: 18px; font-weight: 900; margin-right: 4px; }
+    .pill.blue span { color: var(--blue); }
+    .pill.green span { color: var(--green); }
+    .pill.gold span  { color: var(--gold); }
+
+    /* Modal */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.45); z-index: 200;
+      align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: white; border-radius: 16px;
+      width: 100%; max-width: 420px;
+      padding: 24px; animation: fadeIn 0.2s;
+    }
+    @keyframes fadeIn { from { opacity:0; transform: scale(0.96); } to { opacity:1; transform: scale(1); } }
+    .modal-title { font-size: 17px; font-weight: 800; margin-bottom: 16px; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 18px; justify-content: flex-end; }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 20px; left: 50%;
+      transform: translateX(-50%);
+      background: #1A1A2E; color: white;
+      padding: 11px 20px; border-radius: 24px;
+      font-size: 13px; font-weight: 600;
+      z-index: 999; opacity: 0; transition: opacity 0.3s;
+      white-space: nowrap; pointer-events: none;
+    }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-avatar" id="hdr-avatar"><span id="hdr-initial">M</span></div>
+  <div class="header-info">
+    <div class="header-name" id="hdr-name">Manager</div>
+    <div class="header-role" id="hdr-date"></div>
+  </div>
+  <div class="header-tag">👔 Manager</div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('history')">📋 ประวัติการเยี่ยม</div>
+  <div class="tab" onclick="switchTab('assign')">📅 มอบหมาย</div>
+  <div class="tab" onclick="switchTab('shops')">🏪 ร้านค้า</div>
+  <div class="tab" onclick="switchTab('import')">📤 นำเข้า CSV</div>
+</div>
+
+<!-- ── Tab: History ──────────────────────────────────── -->
+<div class="page active" id="page-history">
+  <div class="container">
+    <div class="card">
+      <div class="card-title">📋 บันทึกการเยี่ยมร้าน</div>
+      <div class="filter-bar">
+        <div class="form-group">
+          <label class="form-label">จาก</label>
+          <input type="date" class="form-input" id="hist-from" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">ถึง</label>
+          <input type="date" class="form-input" id="hist-to" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">พนักงาน</label>
+          <select class="form-select" id="hist-staff">
+            <option value="">ทั้งหมด</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">ร้าน</label>
+          <select class="form-select" id="hist-shop">
+            <option value="">ทั้งหมด</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">&nbsp;</label>
+          <button class="btn btn-primary" onclick="loadHistory()">🔍 ค้นหา</button>
+        </div>
+      </div>
+
+      <div class="summary-row" id="hist-summary" style="display:none">
+        <div class="pill blue"><span id="sum-visits">0</span> การเยี่ยม</div>
+        <div class="pill green"><span id="sum-complete">0</span> เสร็จ</div>
+        <div class="pill gold"><span id="sum-inprog">0</span> ค้างอยู่</div>
+      </div>
+
+      <div id="hist-content">
+        <div class="loading"><div class="spinner"></div>กำลังโหลด...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab: Assign ───────────────────────────────────── -->
+<div class="page" id="page-assign">
+  <div class="container">
+    <div class="card">
+      <div class="card-title">📅 มอบหมายร้านค้า</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">วันที่</label>
+          <input type="date" class="form-input" id="asgn-date" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">พนักงาน</label>
+          <select class="form-select" id="asgn-staff">
+            <option value="">— เลือกพนักงาน —</option>
+          </select>
+        </div>
+        <div class="form-group" style="flex:2; min-width:200px">
+          <label class="form-label">ร้าน</label>
+          <select class="form-select" id="asgn-shop">
+            <option value="">— เลือกร้าน —</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">&nbsp;</label>
+          <button class="btn btn-success" onclick="createAssignment()">➕ มอบหมาย</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📋 รายการมอบหมาย</div>
+      <div class="filter-bar">
+        <div class="form-group">
+          <label class="form-label">วันที่</label>
+          <input type="date" class="form-input" id="asgn-view-date" />
+        </div>
+        <div>
+          <label class="form-label">&nbsp;</label>
+          <button class="btn btn-outline" onclick="loadAssignments()">🔍 ดู</button>
+        </div>
+      </div>
+      <div id="asgn-list">
+        <div class="loading"><div class="spinner"></div>กำลังโหลด...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab: Shops ────────────────────────────────────── -->
+<div class="page" id="page-shops">
+  <div class="container">
+    <div class="card">
+      <div class="card-title">🏪 จัดการร้านค้า
+        <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="openAddShop()">➕ เพิ่มร้าน</button>
+      </div>
+      <div id="shops-list">
+        <div class="loading"><div class="spinner"></div>กำลังโหลด...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab: Import ───────────────────────────────────── -->
+<div class="page" id="page-import">
+  <div class="container">
+    <div class="card">
+      <div class="card-title">📤 นำเข้าร้านค้าจาก CSV</div>
+      <p style="font-size:13px;color:var(--sub);margin-bottom:16px;">
+        ไฟล์ CSV ต้องมีคอลัมน์: <strong>name, lat, lng</strong> (จำเป็น) และ <strong>address, contact_name, contact_phone</strong> (ไม่บังคับ)
+      </p>
+
+      <div class="drop-zone" id="drop-zone" onclick="document.getElementById('csv-input').click()"
+           ondragover="event.preventDefault();this.classList.add('drag-over')"
+           ondragleave="this.classList.remove('drag-over')"
+           ondrop="handleDrop(event)">
+        <div class="drop-zone-icon">📂</div>
+        <div class="drop-zone-text">ลากไฟล์ CSV มาวาง หรือแตะเพื่อเลือก</div>
+        <div class="drop-zone-sub">รองรับ .csv เท่านั้น</div>
+      </div>
+      <input type="file" id="csv-input" accept=".csv" style="display:none" onchange="handleCSV(event)" />
+
+      <div id="import-preview" style="display:none">
+        <div class="import-preview">
+          <table id="preview-table">
+            <thead><tr><th>#</th><th>ชื่อร้าน</th><th>ที่อยู่</th><th>Lat</th><th>Lng</th><th>ติดต่อ</th></tr></thead>
+            <tbody id="preview-body"></tbody>
+          </table>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:12px;align-items:center">
+          <span id="preview-count" style="font-size:13px;color:var(--sub);flex:1"></span>
+          <button class="btn btn-outline" onclick="clearImport()">ล้าง</button>
+          <button class="btn btn-success" id="import-btn" onclick="doImport()">✅ นำเข้า</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="font-size:13px;color:var(--sub)">
+      <div class="card-title" style="font-size:14px">📝 ตัวอย่าง CSV</div>
+      <pre style="background:#F3F4F6;padding:12px;border-radius:8px;overflow-x:auto;font-size:12px;line-height:1.6">name,address,lat,lng,contact_name,contact_phone
+ร้านข้าวต้มเมืองทอง,15/3 ถ.สุขุมวิท กรุงเทพ,13.7563,100.5018,สมชาย,0812345678
+ร้านอาหารทะเล Ocean,พัทยา ชลบุรี,12.9272,100.8770,,</pre>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Add Shop manually -->
+<div class="modal-overlay" id="shop-modal" onclick="if(event.target===this)closeShopModal()">
+  <div class="modal">
+    <div class="modal-title">➕ เพิ่มร้านค้า</div>
+    <div class="form-group" style="margin-bottom:10px">
+      <label class="form-label">ชื่อร้าน *</label>
+      <input type="text" class="form-input" id="sm-name" placeholder="ชื่อร้าน" />
+    </div>
+    <div class="form-group" style="margin-bottom:10px">
+      <label class="form-label">ที่อยู่</label>
+      <input type="text" class="form-input" id="sm-address" placeholder="ที่อยู่" />
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Latitude *</label>
+        <input type="number" step="any" class="form-input" id="sm-lat" placeholder="13.7563" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Longitude *</label>
+        <input type="number" step="any" class="form-input" id="sm-lng" placeholder="100.5018" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">ชื่อผู้ติดต่อ</label>
+        <input type="text" class="form-input" id="sm-contact" placeholder="ชื่อ" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">เบอร์โทร</label>
+        <input type="text" class="form-input" id="sm-phone" placeholder="08x-xxx-xxxx" />
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeShopModal()">ยกเลิก</button>
+      <button class="btn btn-success" onclick="saveShop()">✅ บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<script>
+  const SUPABASE_URL  = 'https://vuqcoadeexyqmaoldkzt.supabase.co';
+  const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1cWNvYWRlZXh5cW1hb2xka3p0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2NzE2NjQsImV4cCI6MjA5NjI0NzY2NH0.jLnRNjI7wq6fJ_hFUpO2OZiN39wQAsU-IhrYC8DOZsU';
+  const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+  let S = { session: null, salesStaff: [], allShops: [], importRows: [] };
+
+  // ── Init ────────────────────────────────────────────
+  async function init() {
+    const raw = localStorage.getItem('scg_session');
+    if (!raw) { location.replace('index.html'); return; }
+    S.session = JSON.parse(raw);
+
+    document.getElementById('hdr-name').textContent = S.session.display_name;
+    document.getElementById('hdr-initial').textContent = S.session.display_name[0] || 'M';
+    if (S.session.picture_url) {
+      document.getElementById('hdr-avatar').innerHTML = `<img src="${S.session.picture_url}" />`;
+    }
+    document.getElementById('hdr-date').textContent = new Date().toLocaleDateString('th-TH', { weekday:'long', day:'numeric', month:'long' });
+
+    // Default dates
+    const today = new Date().toISOString().slice(0, 10);
+    document.getElementById('hist-from').value    = sub30d(today);
+    document.getElementById('hist-to').value      = today;
+    document.getElementById('asgn-date').value    = today;
+    document.getElementById('asgn-view-date').value = today;
+
+    await Promise.all([loadStaff(), loadShops()]);
+    await Promise.all([loadHistory(), loadAssignments()]);
+  }
+
+  function sub30d(iso) {
+    const d = new Date(iso); d.setDate(d.getDate() - 30);
+    return d.toISOString().slice(0, 10);
+  }
+
+  // ── Tab switch ───────────────────────────────────────
+  function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach((t, i) => {
+      const tabs = ['history', 'assign', 'shops', 'import'];
+      t.classList.toggle('active', tabs[i] === tab);
+    });
+    ['history', 'assign', 'shops', 'import'].forEach(id => {
+      document.getElementById('page-' + id).classList.toggle('active', id === tab);
+    });
+    if (tab === 'shops') loadShopsList();
+  }
+
+  // ── Load staff + shops (for dropdowns) ───────────────
+  async function loadStaff() {
+    const { data } = await db.from('staff').select('id, display_name, picture_url, role').eq('is_active', true).order('display_name');
+    S.salesStaff = (data || []).filter(s => s.role === 'sales');
+    ['hist-staff', 'asgn-staff'].forEach(id => {
+      const el = document.getElementById(id);
+      const prev = id === 'hist-staff' ? '<option value="">ทั้งหมด</option>' : '<option value="">— เลือกพนักงาน —</option>';
+      el.innerHTML = prev + S.salesStaff.map(s => `<option value="${s.id}">${esc(s.display_name)}</option>`).join('');
+    });
+  }
+
+  async function loadShops() {
+    const { data } = await db.from('shops').select('id, name, address, lat, lng, contact_name, contact_phone').eq('is_active', true).order('name');
+    S.allShops = data || [];
+    ['hist-shop', 'asgn-shop'].forEach(id => {
+      const el = document.getElementById(id);
+      const prev = id === 'hist-shop' ? '<option value="">ทั้งหมด</option>' : '<option value="">— เลือกร้าน —</option>';
+      el.innerHTML = prev + S.allShops.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('');
+    });
+  }
+
+  // ── History ──────────────────────────────────────────
+  async function loadHistory() {
+    document.getElementById('hist-content').innerHTML = '<div class="loading"><div class="spinner"></div>กำลังโหลด...</div>';
+    document.getElementById('hist-summary').style.display = 'none';
+
+    const from    = document.getElementById('hist-from').value;
+    const to      = document.getElementById('hist-to').value;
+    const staffId = document.getElementById('hist-staff').value || null;
+    const shopId  = document.getElementById('hist-shop').value  || null;
+
+    const { data, error } = await db.rpc('get_visit_history', {
+      p_from: from, p_to: to,
+      p_staff_id: staffId ? parseInt(staffId) : null,
+      p_shop_id:  shopId  ? parseInt(shopId)  : null,
+    });
+
+    if (error || !data?.ok) {
+      document.getElementById('hist-content').innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div>โหลดไม่ได้</div>';
+      return;
+    }
+
+    const visits = data.visits || [];
+    const done   = visits.filter(v => v.status === 'checked_out').length;
+    const inprog = visits.length - done;
+
+    document.getElementById('sum-visits').textContent   = visits.length;
+    document.getElementById('sum-complete').textContent = done;
+    document.getElementById('sum-inprog').textContent   = inprog;
+    document.getElementById('hist-summary').style.display = visits.length ? 'flex' : 'none';
+
+    if (visits.length === 0) {
+      document.getElementById('hist-content').innerHTML = '<div class="empty"><div class="empty-icon">📋</div>ไม่พบข้อมูล</div>';
+      return;
+    }
+
+    document.getElementById('hist-content').innerHTML = `
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>วันที่</th>
+              <th>พนักงาน</th>
+              <th>ร้าน</th>
+              <th>Check-in</th>
+              <th>Check-out</th>
+              <th>ระยะเวลา</th>
+              <th>สถานะ</th>
+              <th>รูป</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${visits.map(v => `
+              <tr>
+                <td style="white-space:nowrap">${fmtDate(v.checkin_at)}</td>
+                <td>
+                  <div class="staff-chip">
+                    ${v.staff_picture
+                      ? `<img src="${v.staff_picture}" style="width:26px;height:26px;border-radius:50%;object-fit:cover">`
+                      : `<div style="width:26px;height:26px;border-radius:50%;background:var(--blue-light);color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center">${(v.staff_name||'?')[0]}</div>`}
+                    ${esc(v.staff_name)}
+                  </div>
+                </td>
+                <td>${esc(v.shop_name)}</td>
+                <td style="white-space:nowrap">
+                  ${fmtTime(v.checkin_at)}
+                  ${v.checkin_notes ? `<br><span style="color:var(--sub);font-size:11px">${esc(v.checkin_notes)}</span>` : ''}
+                </td>
+                <td style="white-space:nowrap">
+                  ${v.checkout_at ? fmtTime(v.checkout_at) : '<span style="color:var(--sub)">—</span>'}
+                  ${v.checkout_notes ? `<br><span style="color:var(--sub);font-size:11px">${esc(v.checkout_notes)}</span>` : ''}
+                </td>
+                <td style="white-space:nowrap">${v.duration_minutes != null ? v.duration_minutes + ' นาที' : '—'}</td>
+                <td>
+                  ${v.status === 'checked_out'
+                    ? '<span class="badge badge-out">✅ เสร็จ</span>'
+                    : '<span class="badge badge-in">🟡 กำลังเยี่ยม</span>'}
+                </td>
+                <td>
+                  <div style="display:flex;gap:4px">
+                    ${v.checkin_photo_url  ? `<img class="thumb" src="${v.checkin_photo_url}" onclick="viewPhoto('${v.checkin_photo_url}')" title="Check-in photo">` : ''}
+                    ${v.checkout_photo_url ? `<img class="thumb" src="${v.checkout_photo_url}" onclick="viewPhoto('${v.checkout_photo_url}')" title="Check-out photo">` : ''}
+                    ${!v.checkin_photo_url && !v.checkout_photo_url ? '<span style="color:var(--sub)">—</span>' : ''}
+                  </div>
+                </td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  }
+
+  // ── Assignments ──────────────────────────────────────
+  async function loadAssignments() {
+    const date = document.getElementById('asgn-view-date').value;
+    document.getElementById('asgn-list').innerHTML = '<div class="loading"><div class="spinner"></div>กำลังโหลด...</div>';
+
+    const { data: rows, error } = await db
+      .from('assignments')
+      .select('id, assigned_date, shop:shops(id,name,address), staff:staff!assignments_staff_id_fkey(id,display_name,picture_url)')
+      .eq('assigned_date', date)
+      .eq('is_active', true)
+      .order('id');
+
+    if (error || !rows) {
+      document.getElementById('asgn-list').innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div>โหลดไม่ได้</div>';
+      return;
+    }
+    if (rows.length === 0) {
+      document.getElementById('asgn-list').innerHTML = '<div class="empty"><div class="empty-icon">📅</div>ไม่มีการมอบหมายในวันนี้</div>';
+      return;
+    }
+
+    document.getElementById('asgn-list').innerHTML = `
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>ร้าน</th><th>พนักงาน</th><th></th></tr></thead>
+          <tbody>
+            ${rows.map(a => `
+              <tr>
+                <td><strong>${esc(a.shop?.name)}</strong>${a.shop?.address ? `<br><span style="color:var(--sub);font-size:11px">${esc(a.shop.address)}</span>` : ''}</td>
+                <td>
+                  <div class="staff-chip">
+                    ${a.staff?.picture_url
+                      ? `<img src="${a.staff.picture_url}" style="width:26px;height:26px;border-radius:50%;object-fit:cover">`
+                      : `<div style="width:26px;height:26px;border-radius:50%;background:var(--blue-light);color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center">${(a.staff?.display_name||'?')[0]}</div>`}
+                    ${esc(a.staff?.display_name)}
+                  </div>
+                </td>
+                <td><button class="btn btn-danger btn-sm" onclick="deleteAssignment(${a.id})">🗑</button></td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  }
+
+  async function createAssignment() {
+    const date   = document.getElementById('asgn-date').value;
+    const staffId = document.getElementById('asgn-staff').value;
+    const shopId  = document.getElementById('asgn-shop').value;
+    if (!date || !staffId || !shopId) { showToast('❌ กรุณากรอกข้อมูลให้ครบ'); return; }
+
+    const { data, error } = await db.rpc('create_assignment', {
+      p_line_user_id: S.session.line_user_id,
+      p_shop_id:      parseInt(shopId),
+      p_staff_id:     parseInt(staffId),
+      p_assigned_date: date,
+    });
+
+    if (error || !data?.ok) {
+      showToast('❌ ' + (data?.reason || error?.message || 'ไม่สำเร็จ'));
+      return;
+    }
+    showToast('✅ มอบหมายสำเร็จ');
+    loadAssignments();
+  }
+
+  async function deleteAssignment(id) {
+    if (!confirm('ลบการมอบหมายนี้?')) return;
+    const { data } = await db.rpc('delete_assignment', {
+      p_line_user_id: S.session.line_user_id,
+      p_assignment_id: id,
+    });
+    if (data?.ok) { showToast('✅ ลบแล้ว'); loadAssignments(); }
+    else showToast('❌ ลบไม่ได้');
+  }
+
+  // ── Shops list ────────────────────────────────────────
+  async function loadShopsList() {
+    document.getElementById('shops-list').innerHTML = '<div class="loading"><div class="spinner"></div>กำลังโหลด...</div>';
+    const { data, error } = await db.from('shops').select('*').eq('is_active', true).order('name');
+    if (error || !data?.length) {
+      document.getElementById('shops-list').innerHTML = '<div class="empty"><div class="empty-icon">🏪</div>ยังไม่มีร้านค้า — นำเข้าจาก CSV หรือเพิ่มด้วยตนเอง</div>';
+      return;
+    }
+    document.getElementById('shops-list').innerHTML = `
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>ร้าน</th><th>ที่อยู่</th><th>GPS</th><th>ติดต่อ</th></tr></thead>
+          <tbody>
+            ${data.map(s => `
+              <tr>
+                <td><strong>${esc(s.name)}</strong></td>
+                <td style="color:var(--sub)">${esc(s.address || '—')}</td>
+                <td style="font-size:11px;color:var(--sub)">${s.lat}, ${s.lng}</td>
+                <td style="font-size:12px">${s.contact_name ? esc(s.contact_name) + (s.contact_phone ? '<br>' + esc(s.contact_phone) : '') : '—'}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  }
+
+  function openAddShop() {
+    ['sm-name','sm-address','sm-lat','sm-lng','sm-contact','sm-phone'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('shop-modal').classList.add('open');
+  }
+  function closeShopModal() { document.getElementById('shop-modal').classList.remove('open'); }
+
+  async function saveShop() {
+    const name = document.getElementById('sm-name').value.trim();
+    const lat  = parseFloat(document.getElementById('sm-lat').value);
+    const lng  = parseFloat(document.getElementById('sm-lng').value);
+    if (!name || isNaN(lat) || isNaN(lng)) { showToast('❌ กรุณากรอก ชื่อ, Lat, Lng'); return; }
+
+    const { error } = await db.from('shops').insert({
+      name, address: document.getElementById('sm-address').value.trim() || null,
+      lat, lng,
+      contact_name: document.getElementById('sm-contact').value.trim() || null,
+      contact_phone: document.getElementById('sm-phone').value.trim() || null,
+      imported_by: S.session.staff_id,
+    });
+
+    if (error) { showToast('❌ ' + error.message); return; }
+    showToast('✅ เพิ่มร้านสำเร็จ');
+    closeShopModal();
+    await loadShops();
+    loadShopsList();
+  }
+
+  // ── CSV Import ────────────────────────────────────────
+  function handleDrop(e) {
+    e.preventDefault();
+    document.getElementById('drop-zone').classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) parseCSVFile(file);
+  }
+
+  function handleCSV(e) {
+    const file = e.target.files[0];
+    if (file) parseCSVFile(file);
+    e.target.value = '';
+  }
+
+  function parseCSVFile(file) {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const lines  = ev.target.result.trim().split('\n');
+      const header = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/^"|"$/g, ''));
+
+      const idx = k => header.findIndex(h => h === k);
+      const cols = {
+        name: idx('name'), address: idx('address'),
+        lat: idx('lat'), lng: idx('lng'),
+        contact_name: idx('contact_name'), contact_phone: idx('contact_phone'),
+      };
+
+      if (cols.name < 0 || cols.lat < 0 || cols.lng < 0) {
+        showToast('❌ ไม่พบคอลัมน์ name, lat หรือ lng');
+        return;
+      }
+
+      S.importRows = [];
+      const tbody = document.getElementById('preview-body');
+      tbody.innerHTML = '';
+
+      lines.slice(1).forEach((line, i) => {
+        if (!line.trim()) return;
+        const cells = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+        const row = {
+          name:          cells[cols.name] || '',
+          address:       cols.address >= 0 ? cells[cols.address] || null : null,
+          lat:           parseFloat(cells[cols.lat]),
+          lng:           parseFloat(cells[cols.lng]),
+          contact_name:  cols.contact_name >= 0 ? cells[cols.contact_name] || null : null,
+          contact_phone: cols.contact_phone >= 0 ? cells[cols.contact_phone] || null : null,
+        };
+        if (!row.name || isNaN(row.lat) || isNaN(row.lng)) return;
+        S.importRows.push(row);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${S.importRows.length}</td><td>${esc(row.name)}</td><td>${esc(row.address||'')}</td><td>${row.lat}</td><td>${row.lng}</td><td>${esc(row.contact_name||'')}${row.contact_phone?' · '+esc(row.contact_phone):''}</td>`;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById('preview-count').textContent = `${S.importRows.length} ร้านที่พร้อมนำเข้า`;
+      document.getElementById('import-preview').style.display = 'block';
+    };
+    reader.readAsText(file, 'UTF-8');
+  }
+
+  function clearImport() {
+    S.importRows = [];
+    document.getElementById('import-preview').style.display = 'none';
+    document.getElementById('preview-body').innerHTML = '';
+  }
+
+  async function doImport() {
+    if (!S.importRows.length) return;
+    const btn = document.getElementById('import-btn');
+    btn.disabled = true; btn.textContent = 'กำลังนำเข้า...';
+
+    const { data, error } = await db.rpc('import_shops', {
+      p_line_user_id: S.session.line_user_id,
+      p_shops: S.importRows,
+    });
+
+    btn.disabled = false; btn.textContent = '✅ นำเข้า';
+
+    if (error || !data?.ok) {
+      showToast('❌ ' + (data?.reason || error?.message || 'ไม่สำเร็จ'));
+      return;
+    }
+    showToast(`✅ นำเข้าสำเร็จ ${data.inserted} ร้าน (ข้าม ${data.skipped})`);
+    clearImport();
+    await loadShops();
+  }
+
+  // ── Utils ─────────────────────────────────────────────
+  function esc(s) { return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function fmtDate(iso) { return new Date(iso).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' }); }
+  function fmtTime(iso) { return new Date(iso).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }); }
+  function viewPhoto(url) { window.open(url, '_blank'); }
+
+  let _tt;
+  function showToast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg; el.classList.add('show');
+    clearTimeout(_tt); _tt = setTimeout(() => el.classList.remove('show'), 3000);
+  }
+
+  init();
+</script>
+</body>
+</html>
