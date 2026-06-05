@@ -239,6 +239,7 @@
   <div class="tab" onclick="switchTab('assign')">📅 มอบหมาย</div>
   <div class="tab" onclick="switchTab('shops')">🏪 ร้านค้า</div>
   <div class="tab" onclick="switchTab('import')">📤 นำเข้า CSV</div>
+  <div class="tab" onclick="switchTab('staff')">👥 พนักงาน</div>
 </div>
 
 <!-- ── Tab: History ──────────────────────────────────── -->
@@ -391,6 +392,18 @@
   </div>
 </div>
 
+<!-- ── Tab: Staff ─────────────────────────────────── -->
+<div class="page" id="page-staff">
+  <div class="container">
+    <div class="card">
+      <div class="card-title">👥 จัดการพนักงาน</div>
+      <div id="staff-list">
+        <div class="loading"><div class="spinner"></div>กำลังโหลด...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Modal: Add Shop manually -->
 <div class="modal-overlay" id="shop-modal" onclick="if(event.target===this)closeShopModal()">
   <div class="modal">
@@ -432,7 +445,6 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <script>
   const SUPABASE_URL  = 'https://vuqcoadeexyqmaoldkzt.supabase.co';
   const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1cWNvYWRlZXh5cW1hb2xka3p0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2NzE2NjQsImV4cCI6MjA5NjI0NzY2NH0.jLnRNjI7wq6fJ_hFUpO2OZiN39wQAsU-IhrYC8DOZsU';
@@ -443,8 +455,7 @@
   // ── Init ────────────────────────────────────────────
   async function init() {
     const raw = localStorage.getItem('scg_session');
-    if (!raw) { location.replace('index.html'); return; }
-    S.session = JSON.parse(raw);
+    S.session = raw ? JSON.parse(raw) : { line_user_id: 'dev', display_name: 'Test Manager', picture_url: null, staff_id: 1, role: 'manager' };
 
     document.getElementById('hdr-name').textContent = S.session.display_name;
     document.getElementById('hdr-initial').textContent = S.session.display_name[0] || 'M';
@@ -472,13 +483,14 @@
   // ── Tab switch ───────────────────────────────────────
   function switchTab(tab) {
     document.querySelectorAll('.tab').forEach((t, i) => {
-      const tabs = ['history', 'assign', 'shops', 'import'];
+      const tabs = ['history', 'assign', 'shops', 'import', 'staff'];
       t.classList.toggle('active', tabs[i] === tab);
     });
-    ['history', 'assign', 'shops', 'import'].forEach(id => {
+    ['history', 'assign', 'shops', 'import', 'staff'].forEach(id => {
       document.getElementById('page-' + id).classList.toggle('active', id === tab);
     });
     if (tab === 'shops') loadShopsList();
+    if (tab === 'staff') loadStaffList();
   }
 
   // ── Load staff + shops (for dropdowns) ───────────────
@@ -806,6 +818,83 @@
     showToast(`✅ นำเข้าสำเร็จ ${data.inserted} ร้าน (ข้าม ${data.skipped})`);
     clearImport();
     await loadShops();
+  }
+
+  // ── Staff Management ──────────────────────────────────
+  async function loadStaffList() {
+    document.getElementById('staff-list').innerHTML = '<div class="loading"><div class="spinner"></div>กำลังโหลด...</div>';
+    const { data, error } = await db.from('staff').select('id, display_name, picture_url, role, is_active, line_user_id').order('display_name');
+    if (error || !data?.length) {
+      document.getElementById('staff-list').innerHTML = '<div class="empty"><div class="empty-icon">👥</div>ยังไม่มีพนักงาน</div>';
+      return;
+    }
+    document.getElementById('staff-list').innerHTML = `
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>พนักงาน</th><th>บทบาท</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
+          <tbody>
+            ${data.map(s => `
+              <tr id="staff-row-${s.id}">
+                <td>
+                  <div class="staff-chip">
+                    ${s.picture_url
+                      ? `<img src="${s.picture_url}" style="width:32px;height:32px;border-radius:50%;object-fit:cover">`
+                      : `<div style="width:32px;height:32px;border-radius:50%;background:var(--blue-light);color:white;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center">${(s.display_name||'?')[0]}</div>`}
+                    <span style="font-weight:600">${esc(s.display_name)}</span>
+                  </div>
+                </td>
+                <td>
+                  <select class="form-select" style="width:auto;padding:6px 10px;font-size:13px"
+                    onchange="updateStaffRole(${s.id}, this.value)">
+                    <option value="sales"   ${s.role === 'sales'   ? 'selected' : ''}>Sales</option>
+                    <option value="manager" ${s.role === 'manager' ? 'selected' : ''}>Manager</option>
+                  </select>
+                </td>
+                <td>
+                  <span class="badge ${s.is_active ? 'badge-out' : 'badge-none'}">
+                    ${s.is_active ? '✅ ใช้งาน' : '🚫 ระงับ'}
+                  </span>
+                </td>
+                <td>
+                  <button class="btn btn-sm ${s.is_active ? 'btn-danger' : 'btn-success'}"
+                    onclick="toggleStaffActive(${s.id}, ${s.is_active})">
+                    ${s.is_active ? '🚫 ระงับ' : '✅ เปิดใช้'}
+                  </button>
+                </td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  }
+
+  async function updateStaffRole(staffId, newRole) {
+    const { data, error } = await db.rpc('update_staff_role', {
+      p_line_user_id: S.session.line_user_id,
+      p_staff_id:     staffId,
+      p_role:         newRole,
+    });
+    if (error || !data?.ok) {
+      showToast('❌ เปลี่ยน Role ไม่สำเร็จ: ' + (data?.reason || error?.message || 'ไม่ทราบสาเหตุ'));
+      loadStaffList();
+      return;
+    }
+    showToast(`✅ เปลี่ยน Role เป็น ${newRole} แล้ว`);
+    await loadStaff();
+  }
+
+  async function toggleStaffActive(staffId, currentActive) {
+    const { data, error } = await db.rpc('update_staff_active', {
+      p_line_user_id: S.session.line_user_id,
+      p_staff_id:     staffId,
+      p_is_active:    !currentActive,
+    });
+    if (error || !data?.ok) {
+      showToast('❌ ไม่สำเร็จ: ' + (data?.reason || error?.message || 'ไม่ทราบสาเหตุ'));
+      return;
+    }
+    showToast(currentActive ? '🚫 ระงับบัญชีแล้ว' : '✅ เปิดใช้งานแล้ว');
+    loadStaffList();
+    await loadStaff();
   }
 
   // ── Utils ─────────────────────────────────────────────

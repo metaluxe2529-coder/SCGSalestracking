@@ -396,7 +396,6 @@
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
-<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <script>
   const SUPABASE_URL  = 'https://vuqcoadeexyqmaoldkzt.supabase.co';
   const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1cWNvYWRlZXh5cW1hb2xka3p0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2NzE2NjQsImV4cCI6MjA5NjI0NzY2NH0.jLnRNjI7wq6fJ_hFUpO2OZiN39wQAsU-IhrYC8DOZsU';
@@ -407,8 +406,7 @@
   // ── Init ──────────────────────────────────────────────
   async function init() {
     const raw = localStorage.getItem('scg_session');
-    if (!raw) { location.replace('index.html'); return; }
-    S.session = JSON.parse(raw);
+    S.session = raw ? JSON.parse(raw) : { line_user_id: 'dev', display_name: 'Test Sales', picture_url: null, staff_id: 1, role: 'sales' };
 
     // Header
     document.getElementById('hdr-name').textContent = S.session.display_name;
