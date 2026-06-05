@@ -108,6 +108,8 @@
     const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1cWNvYWRlZXh5cW1hb2xka3p0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2NzE2NjQsImV4cCI6MjA5NjI0NzY2NH0.jLnRNjI7wq6fJ_hFUpO2OZiN39wQAsU-IhrYC8DOZsU';
     const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
+    let staffMap = {};
+
     async function loadStaff() {
       const { data, error } = await db
         .from('staff')
@@ -124,8 +126,10 @@
         return;
       }
 
+      data.forEach(s => staffMap[s.id] = s);
+
       document.getElementById('staff-buttons').innerHTML = data.map(s => `
-        <button class="staff-btn" onclick="loginAs(${JSON.stringify(JSON.stringify(s))})">
+        <button class="staff-btn" onclick="loginAs(${s.id})">
           <div class="avatar">${(s.display_name || '?')[0].toUpperCase()}</div>
           <div class="info">
             <div class="name">${s.display_name}</div>
@@ -135,8 +139,8 @@
         </button>`).join('');
     }
 
-    function loginAs(staffJson) {
-      const s = JSON.parse(staffJson);
+    function loginAs(id) {
+      const s = staffMap[id];
       localStorage.setItem('scg_session', JSON.stringify({
         line_user_id: s.line_user_id,
         display_name: s.display_name,
