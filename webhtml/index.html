@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SCG Sales Tracking</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -90,6 +91,7 @@
       margin: 0 auto 12px;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
+    #status { opacity: 0.7; font-size: 14px; margin-top: 12px; }
     #loading { padding: 20px 0; }
   </style>
 </head>
@@ -97,20 +99,71 @@
   <div class="splash">
     <div class="logo">SCG<span>.</span></div>
     <div class="subtitle">Sales Tracking</div>
-    <div class="dev-label">DEV MODE</div>
-    <div class="pick-title">เลือกบัญชีสำหรับทดสอบ</div>
+    <div id="dev-label-el" class="dev-label" style="display:none">DEV MODE</div>
     <div id="loading"><div class="spinner"></div></div>
+    <div id="status">กำลังเชื่อมต่อ LINE...</div>
+    <div id="pick-title" class="pick-title" style="display:none">เลือกบัญชีสำหรับทดสอบ</div>
     <div id="staff-buttons"></div>
   </div>
 
   <script>
     const SUPABASE_URL  = 'https://vuqcoadeexyqmaoldkzt.supabase.co';
     const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1cWNvYWRlZXh5cW1hb2xka3p0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2NzE2NjQsImV4cCI6MjA5NjI0NzY2NH0.jLnRNjI7wq6fJ_hFUpO2OZiN39wQAsU-IhrYC8DOZsU';
+    const LIFF_ID       = '2010342819-X8uSIn0R';
     const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
+    const isDev = new URLSearchParams(location.search).has('dev');
+
+    function setStatus(msg) {
+      document.getElementById('status').textContent = msg;
+    }
+
+    async function loginWithLine() {
+      try {
+        await liff.init({ liffId: LIFF_ID });
+        if (!liff.isLoggedIn()) {
+          liff.login();
+          return;
+        }
+        setStatus('กำลังโหลดข้อมูล...');
+        const profile = await liff.getProfile();
+        await resolveStaff(profile.userId, profile.displayName, profile.pictureUrl);
+      } catch (e) {
+        setStatus('❌ เชื่อมต่อ LINE ไม่ได้: ' + e.message);
+      }
+    }
+
+    async function resolveStaff(lineUserId, displayName, pictureUrl) {
+      const { data, error } = await db
+        .from('staff')
+        .select('id, display_name, picture_url, role, line_user_id')
+        .eq('line_user_id', lineUserId)
+        .eq('is_active', true)
+        .single();
+
+      if (error || !data) {
+        setStatus('❌ ไม่พบบัญชีของคุณในระบบ กรุณาติดต่อผู้จัดการ');
+        return;
+      }
+
+      localStorage.setItem('scg_session', JSON.stringify({
+        line_user_id: data.line_user_id,
+        display_name: data.display_name || displayName,
+        picture_url:  data.picture_url  || pictureUrl,
+        staff_id:     data.id,
+        role:         data.role,
+      }));
+      location.replace(data.role === 'manager' ? 'manager.html' : 'sales.html');
+    }
+
+    // ── Dev Mode ─────────────────────────────────────────
     let staffMap = {};
 
-    async function loadStaff() {
+    async function loadDevMode() {
+      document.getElementById('dev-label-el').style.display = 'inline-block';
+      document.getElementById('pick-title').style.display   = 'block';
+      setStatus('');
+
       const { data, error } = await db
         .from('staff')
         .select('id, display_name, picture_url, role, line_user_id')
@@ -127,7 +180,6 @@
       }
 
       data.forEach(s => staffMap[s.id] = s);
-
       document.getElementById('staff-buttons').innerHTML = data.map(s => `
         <button class="staff-btn" onclick="loginAs(${s.id})">
           <div class="avatar">${(s.display_name || '?')[0].toUpperCase()}</div>
@@ -151,7 +203,12 @@
       location.replace(s.role === 'manager' ? 'manager.html' : 'sales.html');
     }
 
-    loadStaff();
+    // ── Entry Point ───────────────────────────────────────
+    if (isDev) {
+      loadDevMode();
+    } else {
+      loginWithLine();
+    }
   </script>
 </body>
 </html>
