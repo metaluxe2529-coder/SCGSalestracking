@@ -60,7 +60,7 @@
 
     .page { display: none; }
     .page.active { display: block; }
-    .container { padding: 16px; max-width: 760px; margin: 0 auto; }
+    .container { padding: 16px; max-width: 480px; margin: 0 auto; }
 
     /* Cards */
     .card {
@@ -85,8 +85,8 @@
     .btn-sm { font-size: 12px; padding: 6px 10px; }
 
     /* Forms */
-    .form-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
-    .form-group { flex: 1; min-width: 140px; }
+    .form-row { display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px; }
+    .form-group { flex: 1; min-width: 0; }
     .form-label { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 4px; display: block; }
     .form-input, .form-select, .form-textarea {
       width: 100%; border: 1.5px solid var(--border);
@@ -139,10 +139,10 @@
 
     /* Filter bar */
     .filter-bar {
-      display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end;
+      display: flex; flex-direction: column; gap: 10px;
       margin-bottom: 14px;
     }
-    .filter-bar .form-group { min-width: 120px; }
+    .filter-bar .form-group { min-width: 0; }
 
     /* CSV drop zone */
     .drop-zone {
@@ -221,6 +221,27 @@
       white-space: nowrap; pointer-events: none;
     }
     .toast.show { opacity: 1; }
+
+    /* Mobile cards */
+    .visit-card {
+      border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px; margin-bottom: 10px; background: white;
+    }
+    .visit-card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .visit-card-shop { font-weight: 700; font-size: 14px; margin-bottom: 6px; }
+    .visit-card-times { display: flex; gap: 10px; font-size: 12px; color: var(--sub); flex-wrap: wrap; }
+    .visit-card-notes { font-size: 11px; color: var(--sub); margin-top: 6px; }
+    .visit-card-photos { display: flex; gap: 6px; margin-top: 8px; }
+
+    .list-item {
+      border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px 14px; margin-bottom: 10px;
+    }
+    .list-item-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+    .list-item-sub { font-size: 12px; color: var(--sub); margin-top: 2px; }
+
+    .staff-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px; }
+    .staff-detail-grid label { font-size: 11px; color: var(--sub); display: block; }
   </style>
 </head>
 <body>
@@ -303,7 +324,7 @@
             <option value="">— เลือกพนักงาน —</option>
           </select>
         </div>
-        <div class="form-group" style="flex:2; min-width:200px">
+        <div class="form-group">
           <label class="form-label">ร้าน</label>
           <select class="form-select" id="asgn-shop">
             <option value="">— เลือกร้าน —</option>
@@ -549,59 +570,35 @@
       return;
     }
 
-    document.getElementById('hist-content').innerHTML = `
-      <div class="tbl-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>วันที่</th>
-              <th>พนักงาน</th>
-              <th>ร้าน</th>
-              <th>Check-in</th>
-              <th>Check-out</th>
-              <th>ระยะเวลา</th>
-              <th>สถานะ</th>
-              <th>รูป</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${visits.map(v => `
-              <tr>
-                <td style="white-space:nowrap">${fmtDate(v.checkin_at)}</td>
-                <td>
-                  <div class="staff-chip">
-                    ${v.staff_picture
-                      ? `<img src="${v.staff_picture}" style="width:26px;height:26px;border-radius:50%;object-fit:cover">`
-                      : `<div style="width:26px;height:26px;border-radius:50%;background:var(--blue-light);color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center">${(v.staff_name||'?')[0]}</div>`}
-                    ${esc(v.staff_name)}
-                  </div>
-                </td>
-                <td>${esc(v.shop_name)}</td>
-                <td style="white-space:nowrap">
-                  ${fmtTime(v.checkin_at)}
-                  ${v.checkin_notes ? `<br><span style="color:var(--sub);font-size:11px">${esc(v.checkin_notes)}</span>` : ''}
-                </td>
-                <td style="white-space:nowrap">
-                  ${v.checkout_at ? fmtTime(v.checkout_at) : '<span style="color:var(--sub)">—</span>'}
-                  ${v.checkout_notes ? `<br><span style="color:var(--sub);font-size:11px">${esc(v.checkout_notes)}</span>` : ''}
-                </td>
-                <td style="white-space:nowrap">${v.duration_minutes != null ? v.duration_minutes + ' นาที' : '—'}</td>
-                <td>
-                  ${v.status === 'checked_out'
-                    ? '<span class="badge badge-out">✅ เสร็จ</span>'
-                    : '<span class="badge badge-in">🟡 กำลังเยี่ยม</span>'}
-                </td>
-                <td>
-                  <div style="display:flex;gap:4px">
-                    ${v.checkin_photo_url  ? `<img class="thumb" src="${v.checkin_photo_url}" onclick="viewPhoto('${v.checkin_photo_url}')" title="Check-in photo">` : ''}
-                    ${v.checkout_photo_url ? `<img class="thumb" src="${v.checkout_photo_url}" onclick="viewPhoto('${v.checkout_photo_url}')" title="Check-out photo">` : ''}
-                    ${!v.checkin_photo_url && !v.checkout_photo_url ? '<span style="color:var(--sub)">—</span>' : ''}
-                  </div>
-                </td>
-              </tr>`).join('')}
-          </tbody>
-        </table>
-      </div>`;
+    document.getElementById('hist-content').innerHTML = visits.map(v => `
+      <div class="visit-card">
+        <div class="visit-card-head">
+          <div class="staff-chip">
+            ${v.staff_picture
+              ? `<img src="${v.staff_picture}" style="width:26px;height:26px;border-radius:50%;object-fit:cover">`
+              : `<div style="width:26px;height:26px;border-radius:50%;background:var(--blue-light);color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center">${(v.staff_name||'?')[0]}</div>`}
+            ${esc(v.staff_name)}
+          </div>
+          ${v.status === 'checked_out'
+            ? '<span class="badge badge-out">✅ เสร็จ</span>'
+            : '<span class="badge badge-in">🟡 กำลังเยี่ยม</span>'}
+        </div>
+        <div class="visit-card-shop">🏪 ${esc(v.shop_name)}</div>
+        <div class="visit-card-times">
+          <span>⬆️ ${fmtDate(v.checkin_at)} ${fmtTime(v.checkin_at)}</span>
+          ${v.checkout_at ? `<span>⬇️ ${fmtTime(v.checkout_at)}</span>` : ''}
+          ${v.duration_minutes != null ? `<span>⏱ ${v.duration_minutes} นาที</span>` : ''}
+        </div>
+        ${v.checkin_notes || v.checkout_notes
+          ? `<div class="visit-card-notes">${[v.checkin_notes, v.checkout_notes].filter(Boolean).map(n => esc(n)).join(' · ')}</div>`
+          : ''}
+        ${v.checkin_photo_url || v.checkout_photo_url
+          ? `<div class="visit-card-photos">
+              ${v.checkin_photo_url  ? `<img class="thumb" src="${v.checkin_photo_url}" onclick="viewPhoto('${v.checkin_photo_url}')">` : ''}
+              ${v.checkout_photo_url ? `<img class="thumb" src="${v.checkout_photo_url}" onclick="viewPhoto('${v.checkout_photo_url}')">` : ''}
+            </div>`
+          : ''}
+      </div>`).join('');
   }
 
   // ── Assignments ──────────────────────────────────────
@@ -625,27 +622,22 @@
       return;
     }
 
-    document.getElementById('asgn-list').innerHTML = `
-      <div class="tbl-wrap">
-        <table>
-          <thead><tr><th>ร้าน</th><th>พนักงาน</th><th></th></tr></thead>
-          <tbody>
-            ${rows.map(a => `
-              <tr>
-                <td><strong>${esc(a.shop?.name)}</strong>${a.shop?.address ? `<br><span style="color:var(--sub);font-size:11px">${esc(a.shop.address)}</span>` : ''}</td>
-                <td>
-                  <div class="staff-chip">
-                    ${a.staff?.picture_url
-                      ? `<img src="${a.staff.picture_url}" style="width:26px;height:26px;border-radius:50%;object-fit:cover">`
-                      : `<div style="width:26px;height:26px;border-radius:50%;background:var(--blue-light);color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center">${(a.staff?.display_name||'?')[0]}</div>`}
-                    ${esc(a.staff?.display_name)}
-                  </div>
-                </td>
-                <td><button class="btn btn-danger btn-sm" onclick="deleteAssignment(${a.id})">🗑</button></td>
-              </tr>`).join('')}
-          </tbody>
-        </table>
-      </div>`;
+    document.getElementById('asgn-list').innerHTML = rows.map(a => `
+      <div class="list-item">
+        <div class="list-item-head">
+          <div>
+            <strong>${esc(a.shop?.name)}</strong>
+            ${a.shop?.address ? `<div class="list-item-sub">${esc(a.shop.address)}</div>` : ''}
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="deleteAssignment(${a.id})">🗑</button>
+        </div>
+        <div class="staff-chip" style="margin-top:8px">
+          ${a.staff?.picture_url
+            ? `<img src="${a.staff.picture_url}" style="width:26px;height:26px;border-radius:50%;object-fit:cover">`
+            : `<div style="width:26px;height:26px;border-radius:50%;background:var(--blue-light);color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center">${(a.staff?.display_name||'?')[0]}</div>`}
+          ${esc(a.staff?.display_name)}
+        </div>
+      </div>`).join('');
   }
 
   async function createAssignment() {
@@ -687,21 +679,13 @@
       document.getElementById('shops-list').innerHTML = '<div class="empty"><div class="empty-icon">🏪</div>ยังไม่มีร้านค้า — นำเข้าจาก CSV หรือเพิ่มด้วยตนเอง</div>';
       return;
     }
-    document.getElementById('shops-list').innerHTML = `
-      <div class="tbl-wrap">
-        <table>
-          <thead><tr><th>ร้าน</th><th>ที่อยู่</th><th>GPS</th><th>ติดต่อ</th></tr></thead>
-          <tbody>
-            ${data.map(s => `
-              <tr>
-                <td><strong>${esc(s.name)}</strong></td>
-                <td style="color:var(--sub)">${esc(s.address || '—')}</td>
-                <td style="font-size:11px;color:var(--sub)">${s.lat}, ${s.lng}</td>
-                <td style="font-size:12px">${s.contact_name ? esc(s.contact_name) + (s.contact_phone ? '<br>' + esc(s.contact_phone) : '') : '—'}</td>
-              </tr>`).join('')}
-          </tbody>
-        </table>
-      </div>`;
+    document.getElementById('shops-list').innerHTML = data.map(s => `
+      <div class="list-item">
+        <strong>${esc(s.name)}</strong>
+        ${s.address ? `<div class="list-item-sub">${esc(s.address)}</div>` : ''}
+        <div class="list-item-sub" style="margin-top:4px">📍 ${s.lat}, ${s.lng}</div>
+        ${s.contact_name ? `<div class="list-item-sub">${esc(s.contact_name)}${s.contact_phone ? ' · ' + esc(s.contact_phone) : ''}</div>` : ''}
+      </div>`).join('');
   }
 
   function openAddShop() {
@@ -823,48 +807,57 @@
   // ── Staff Management ──────────────────────────────────
   async function loadStaffList() {
     document.getElementById('staff-list').innerHTML = '<div class="loading"><div class="spinner"></div>กำลังโหลด...</div>';
-    const { data, error } = await db.from('staff').select('id, display_name, picture_url, role, is_active, line_user_id').order('display_name');
+    const { data, error } = await db.from('staff')
+      .select('id, display_name, picture_url, role, is_active, line_user_id, first_name, last_name, nickname, email, phone')
+      .order('display_name');
     if (error || !data?.length) {
       document.getElementById('staff-list').innerHTML = '<div class="empty"><div class="empty-icon">👥</div>ยังไม่มีพนักงาน</div>';
       return;
     }
-    document.getElementById('staff-list').innerHTML = `
-      <div class="tbl-wrap">
-        <table>
-          <thead><tr><th>พนักงาน</th><th>บทบาท</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
-          <tbody>
-            ${data.map(s => `
-              <tr id="staff-row-${s.id}">
-                <td>
-                  <div class="staff-chip">
-                    ${s.picture_url
-                      ? `<img src="${s.picture_url}" style="width:32px;height:32px;border-radius:50%;object-fit:cover">`
-                      : `<div style="width:32px;height:32px;border-radius:50%;background:var(--blue-light);color:white;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center">${(s.display_name||'?')[0]}</div>`}
-                    <span style="font-weight:600">${esc(s.display_name)}</span>
-                  </div>
-                </td>
-                <td>
-                  <select class="form-select" style="width:auto;padding:6px 10px;font-size:13px"
-                    onchange="updateStaffRole(${s.id}, this.value)">
-                    <option value="sales"   ${s.role === 'sales'   ? 'selected' : ''}>Sales</option>
-                    <option value="manager" ${s.role === 'manager' ? 'selected' : ''}>Manager</option>
-                  </select>
-                </td>
-                <td>
-                  <span class="badge ${s.is_active ? 'badge-out' : 'badge-none'}">
-                    ${s.is_active ? '✅ ใช้งาน' : '🚫 ระงับ'}
-                  </span>
-                </td>
-                <td>
-                  <button class="btn btn-sm ${s.is_active ? 'btn-danger' : 'btn-success'}"
-                    onclick="toggleStaffActive(${s.id}, ${s.is_active})">
-                    ${s.is_active ? '🚫 ระงับ' : '✅ เปิดใช้'}
-                  </button>
-                </td>
-              </tr>`).join('')}
-          </tbody>
-        </table>
-      </div>`;
+    document.getElementById('staff-list').innerHTML = data.map(s => `
+      <div class="list-item">
+        <div class="list-item-head">
+          <div class="staff-chip" onclick="toggleStaffExpand(${s.id})" style="cursor:pointer;flex:1">
+            ${s.picture_url
+              ? `<img src="${s.picture_url}" style="width:36px;height:36px;border-radius:50%;object-fit:cover">`
+              : `<div style="width:36px;height:36px;border-radius:50%;background:var(--blue-light);color:white;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center">${(s.display_name||'?')[0]}</div>`}
+            <div>
+              <div style="font-weight:600">${esc(s.display_name)}</div>
+              ${s.nickname ? `<div style="font-size:11px;color:var(--sub)">(${esc(s.nickname)})</div>` : ''}
+            </div>
+          </div>
+          <button class="btn btn-sm ${s.is_active ? 'btn-danger' : 'btn-success'}"
+            onclick="toggleStaffActive(${s.id}, ${s.is_active})">
+            ${s.is_active ? '🚫 ระงับ' : '✅ เปิดใช้'}
+          </button>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
+          <select class="form-select" style="flex:1;padding:6px 10px;font-size:13px"
+            onchange="updateStaffRole(${s.id}, this.value)">
+            <option value="sales"   ${s.role === 'sales'   ? 'selected' : ''}>Sales</option>
+            <option value="manager" ${s.role === 'manager' ? 'selected' : ''}>Manager</option>
+          </select>
+          <span class="badge ${s.is_active ? 'badge-out' : 'badge-none'}">
+            ${s.is_active ? '✅ ใช้งาน' : '🚫 ระงับ'}
+          </span>
+        </div>
+        <div id="staff-detail-${s.id}" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+          <div class="staff-detail-grid">
+            <div><label>ชื่อ-นามสกุล</label><strong>${esc((s.first_name||'') + ' ' + (s.last_name||'')) || '—'}</strong></div>
+            <div><label>ชื่อเล่น</label><strong>${esc(s.nickname) || '—'}</strong></div>
+            <div><label>เบอร์มือถือ</label><strong>${esc(s.phone) || '—'}</strong></div>
+            <div><label>อีเมล</label><strong>${esc(s.email) || '—'}</strong></div>
+            <div style="grid-column:1/-1"><label>LINE ID</label><strong style="font-size:11px;word-break:break-all">${esc(s.line_user_id)}</strong></div>
+          </div>
+        </div>
+      </div>`).join('');
+  }
+
+  function toggleStaffExpand(id) {
+    const detail = document.getElementById('staff-detail-' + id);
+    if (!detail) return;
+    const isOpen = detail.style.display !== 'none';
+    detail.style.display = isOpen ? 'none' : 'block';
   }
 
   async function updateStaffRole(staffId, newRole) {
