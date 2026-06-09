@@ -880,7 +880,13 @@
                 <button class="btn btn-primary btn-sm" onclick="saveStaffPhone(${s.id})">บันทึก</button>
               </div>
             </div>
-            <div style="grid-column:1/-1"><label>LINE ID</label><strong style="font-size:11px;word-break:break-all">${esc(s.line_user_id) || '(ยังไม่ได้ลงทะเบียน)'}</strong></div>
+            <div style="grid-column:1/-1">
+              <label>LINE ID</label>
+              <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+                <span style="font-size:11px;word-break:break-all;flex:1">${s.line_user_id ? esc(s.line_user_id) : '<span style="color:var(--sub)">(ยังไม่ได้ลงทะเบียน)</span>'}</span>
+                ${s.line_user_id ? `<button class="btn btn-danger btn-sm" onclick="clearLineId(${s.id})">🔄 ล้าง</button>` : ''}
+              </div>
+            </div>
           </div>
         </div>
       </div>`).join('');
@@ -933,6 +939,17 @@
     closeStaffModal();
     loadStaffList();
     await loadStaff();
+  }
+
+  async function clearLineId(staffId) {
+    if (!confirm('ล้าง LINE ID ของพนักงานคนนี้?\nเขาจะต้องลงทะเบียนใหม่ครั้งถัดไป')) return;
+    const { data, error } = await db.rpc('clear_staff_line_id', {
+      p_line_user_id: S.session.line_user_id,
+      p_staff_id:     staffId,
+    });
+    if (error || !data?.ok) { showToast('❌ ' + (data?.reason || error?.message)); return; }
+    showToast('✅ ล้าง LINE ID แล้ว');
+    loadStaffList();
   }
 
   async function saveStaffPhone(staffId) {
