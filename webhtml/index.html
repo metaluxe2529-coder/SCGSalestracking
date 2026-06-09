@@ -142,7 +142,7 @@
         .single();
 
       if (error || !data) {
-        setStatus('❌ ไม่พบบัญชีของคุณในระบบ กรุณาติดต่อผู้จัดการ');
+        setStatus('❌ ไม่พบบัญชีในระบบ\nLINE ID: ' + lineUserId);
         return;
       }
 
