@@ -142,7 +142,9 @@
         .single();
 
       if (error || !data) {
-        setStatus('❌ ไม่พบบัญชีในระบบ\nLINE ID: ' + lineUserId);
+        // Staff not registered yet → go to registration page
+        const q = new URLSearchParams({ lid: lineUserId, name: displayName, pic: pictureUrl || '' });
+        location.replace('register.html?' + q.toString());
         return;
       }
 

@@ -845,9 +845,17 @@
           <div class="staff-detail-grid">
             <div><label>ชื่อ-นามสกุล</label><strong>${esc((s.first_name||'') + ' ' + (s.last_name||'')) || '—'}</strong></div>
             <div><label>ชื่อเล่น</label><strong>${esc(s.nickname) || '—'}</strong></div>
-            <div><label>เบอร์มือถือ</label><strong>${esc(s.phone) || '—'}</strong></div>
+            <div style="grid-column:1/-1">
+              <label>เบอร์มือถือ (ใช้ลงทะเบียน)</label>
+              <div style="display:flex;gap:8px;align-items:center;margin-top:4px">
+                <input type="tel" class="form-input" id="phone-${s.id}"
+                  value="${esc(s.phone||'')}" placeholder="0812345678"
+                  style="flex:1;padding:7px 10px;font-size:13px" />
+                <button class="btn btn-primary btn-sm" onclick="saveStaffPhone(${s.id})">บันทึก</button>
+              </div>
+            </div>
             <div><label>อีเมล</label><strong>${esc(s.email) || '—'}</strong></div>
-            <div style="grid-column:1/-1"><label>LINE ID</label><strong style="font-size:11px;word-break:break-all">${esc(s.line_user_id)}</strong></div>
+            <div style="grid-column:1/-1"><label>LINE ID</label><strong style="font-size:11px;word-break:break-all">${esc(s.line_user_id) || '(ยังไม่ได้ลงทะเบียน)'}</strong></div>
           </div>
         </div>
       </div>`).join('');
@@ -873,6 +881,17 @@
     }
     showToast(`✅ เปลี่ยน Role เป็น ${newRole} แล้ว`);
     await loadStaff();
+  }
+
+  async function saveStaffPhone(staffId) {
+    const phone = document.getElementById('phone-' + staffId).value.trim();
+    const { data, error } = await db.rpc('update_staff_phone', {
+      p_line_user_id: S.session.line_user_id,
+      p_staff_id:     staffId,
+      p_phone:        phone,
+    });
+    if (error || !data?.ok) { showToast('❌ ' + (data?.reason || error?.message || 'ไม่สำเร็จ')); return; }
+    showToast('✅ บันทึกเบอร์โทรแล้ว');
   }
 
   async function toggleStaffActive(staffId, currentActive) {
