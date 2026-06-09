@@ -836,7 +836,7 @@
   async function loadStaffList() {
     document.getElementById('staff-list').innerHTML = '<div class="loading"><div class="spinner"></div>กำลังโหลด...</div>';
     const { data, error } = await db.from('staff')
-      .select('id, display_name, picture_url, role, is_active, line_user_id, first_name, last_name, nickname, email, phone')
+      .select('id, display_name, picture_url, role, is_active, line_user_id, phone')
       .order('display_name');
     if (error || !data?.length) {
       document.getElementById('staff-list').innerHTML = '<div class="empty"><div class="empty-icon">👥</div>ยังไม่มีพนักงาน</div>';
@@ -871,8 +871,6 @@
         </div>
         <div id="staff-detail-${s.id}" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
           <div class="staff-detail-grid">
-            <div><label>ชื่อ-นามสกุล</label><strong>${esc((s.first_name||'') + ' ' + (s.last_name||'')) || '—'}</strong></div>
-            <div><label>ชื่อเล่น</label><strong>${esc(s.nickname) || '—'}</strong></div>
             <div style="grid-column:1/-1">
               <label>เบอร์มือถือ (ใช้ลงทะเบียน)</label>
               <div style="display:flex;gap:8px;align-items:center;margin-top:4px">
@@ -882,7 +880,6 @@
                 <button class="btn btn-primary btn-sm" onclick="saveStaffPhone(${s.id})">บันทึก</button>
               </div>
             </div>
-            <div><label>อีเมล</label><strong>${esc(s.email) || '—'}</strong></div>
             <div style="grid-column:1/-1"><label>LINE ID</label><strong style="font-size:11px;word-break:break-all">${esc(s.line_user_id) || '(ยังไม่ได้ลงทะเบียน)'}</strong></div>
           </div>
         </div>
