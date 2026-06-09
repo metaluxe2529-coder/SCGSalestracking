@@ -417,7 +417,9 @@
 <div class="page" id="page-staff">
   <div class="container">
     <div class="card">
-      <div class="card-title">👥 จัดการพนักงาน</div>
+      <div class="card-title">👥 จัดการพนักงาน
+        <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="openAddStaff()">➕ เพิ่มพนักงาน</button>
+      </div>
       <div id="staff-list">
         <div class="loading"><div class="spinner"></div>กำลังโหลด...</div>
       </div>
@@ -460,6 +462,32 @@
     <div class="modal-actions">
       <button class="btn btn-outline" onclick="closeShopModal()">ยกเลิก</button>
       <button class="btn btn-success" onclick="saveShop()">✅ บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Add Staff -->
+<div class="modal-overlay" id="staff-modal" onclick="if(event.target===this)closeStaffModal()">
+  <div class="modal">
+    <div class="modal-title">➕ เพิ่มพนักงาน</div>
+    <div class="form-group" style="margin-bottom:10px">
+      <label class="form-label">ชื่อที่แสดง *</label>
+      <input type="text" class="form-input" id="ns-name" placeholder="ชื่อ นามสกุล" />
+    </div>
+    <div class="form-group" style="margin-bottom:10px">
+      <label class="form-label">บทบาท *</label>
+      <select class="form-select" id="ns-role">
+        <option value="sales">🧑 Sales</option>
+        <option value="manager">👔 Manager</option>
+      </select>
+    </div>
+    <div class="form-group" style="margin-bottom:10px">
+      <label class="form-label">เบอร์โทร (สำหรับลงทะเบียน)</label>
+      <input type="tel" class="form-input" id="ns-phone" placeholder="0812345678" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeStaffModal()">ยกเลิก</button>
+      <button class="btn btn-success" onclick="saveNewStaff()">✅ เพิ่ม</button>
     </div>
   </div>
 </div>
@@ -880,6 +908,33 @@
       return;
     }
     showToast(`✅ เปลี่ยน Role เป็น ${newRole} แล้ว`);
+    await loadStaff();
+  }
+
+  function openAddStaff() {
+    ['ns-name', 'ns-phone'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('ns-role').value = 'sales';
+    document.getElementById('staff-modal').classList.add('open');
+  }
+  function closeStaffModal() { document.getElementById('staff-modal').classList.remove('open'); }
+
+  async function saveNewStaff() {
+    const name  = document.getElementById('ns-name').value.trim();
+    const role  = document.getElementById('ns-role').value;
+    const phone = document.getElementById('ns-phone').value.trim();
+    if (!name) { showToast('❌ กรุณากรอกชื่อ'); return; }
+
+    const { data, error } = await db.rpc('create_staff', {
+      p_line_user_id: S.session.line_user_id,
+      p_display_name: name,
+      p_role:         role,
+      p_phone:        phone || null,
+    });
+
+    if (error || !data?.ok) { showToast('❌ ' + (data?.reason || error?.message || 'ไม่สำเร็จ')); return; }
+    showToast('✅ เพิ่มพนักงานแล้ว');
+    closeStaffModal();
+    loadStaffList();
     await loadStaff();
   }
 
