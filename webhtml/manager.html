@@ -3,24 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>SCG Manager Dashboard</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <title>SCG — Manager Dashboard</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     :root {
       --blue: #003B7A;
-      --blue-light: #0056B3;
       --gold: #F5A623;
-      --green: #27AE60;
-      --red: #E74C3C;
       --gray: #F2F4F8;
       --text: #1A1A2E;
       --sub: #6B7280;
       --border: #E5E7EB;
-      --nav-h: 64px;
     }
     body {
-      font-family: 'Noto Sans Thai', sans-serif;
+      font-family: 'Noto Sans Thai', 'Segoe UI', sans-serif;
       background: #0d1420;
       min-height: 100dvh;
       display: flex;
@@ -35,994 +30,377 @@
       background: var(--gray);
       color: var(--text);
       overflow: hidden;
-      position: relative;
     }
     @media (min-width: 480px) {
       .app { box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 24px 80px rgba(0,0,0,0.7); }
     }
-    .scroll-area {
-      flex: 1;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      overscroll-behavior: contain;
-    }
 
-    /* ── Header ── */
+    /* Header */
     .header {
-      background: var(--blue); color: white;
+      background: var(--blue);
+      color: white;
       padding: 14px 16px;
       padding-top: calc(14px + env(safe-area-inset-top));
-      display: flex; align-items: center; gap: 12px;
-      flex-shrink: 0; z-index: 10;
-    }
-    .header-avatar {
-      width: 38px; height: 38px; border-radius: 50%;
-      border: 2px solid var(--gold); overflow: hidden;
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 700; font-size: 15px; color: white;
-      background: var(--blue-light); flex-shrink: 0;
-    }
-    .header-avatar img { width: 100%; height: 100%; object-fit: cover; }
-    .header-info { flex: 1; min-width: 0; }
-    .header-name { font-weight: 700; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .header-sub  { font-size: 11px; opacity: 0.65; margin-top: 1px; }
-    .header-tag  {
-      background: var(--gold); color: #1A1A2E;
-      font-size: 11px; font-weight: 800;
-      padding: 3px 10px; border-radius: 20px;
       flex-shrink: 0;
     }
-
-    /* ── Pages ── */
-    .page { display: none; }
-    .page.active { display: block; }
-    .container { padding: 14px 16px; }
-
-    /* ── Card ── */
-    .card {
-      background: white; border-radius: 14px;
-      padding: 16px; margin-bottom: 12px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-    }
-    .card-title {
-      font-size: 15px; font-weight: 800;
-      margin-bottom: 14px;
-      display: flex; align-items: center; gap: 8px;
+    .header-row { display: flex; align-items: center; justify-content: space-between; }
+    .header h1 { font-size: 17px; font-weight: 700; }
+    .header-date { font-size: 11px; opacity: 0.65; margin-top: 2px; }
+    .header-badge {
+      background: rgba(255,255,255,0.18);
+      border-radius: 99px; padding: 4px 10px;
+      font-size: 11px; font-weight: 600;
     }
 
-    /* ── Buttons ── */
-    .btn {
-      padding: 10px 16px; border: none; border-radius: 10px;
-      font-size: 13px; font-weight: 700; font-family: inherit;
-      cursor: pointer; min-height: 44px;
-      display: inline-flex; align-items: center; gap: 6px;
-      transition: opacity 0.15s;
-      -webkit-user-select: none; user-select: none;
-    }
-    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    .btn:active:not(:disabled) { opacity: 0.8; }
-    .btn-primary  { background: var(--blue); color: white; }
-    .btn-success  { background: var(--green); color: white; }
-    .btn-danger   { background: var(--red); color: white; }
-    .btn-outline  { background: white; color: var(--sub); border: 1.5px solid var(--border); }
-    .btn-gold     { background: var(--gold); color: #1A1A2E; }
-    .btn-sm { font-size: 12px; padding: 7px 12px; min-height: 36px; }
-
-    /* ── Forms ── */
-    .form-row { display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px; }
-    .form-group { flex: 1; min-width: 0; }
-    .form-label { font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 5px; display: block; }
-    .form-input, .form-select, .form-textarea {
-      width: 100%; border: 1.5px solid var(--border);
-      border-radius: 10px; padding: 11px 12px;
-      font-size: 16px; font-family: inherit; outline: none;
-      transition: border-color 0.2s; -webkit-appearance: none;
-      color: var(--text);
-    }
-    .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--blue); }
-    .form-textarea { resize: none; height: 70px; font-size: 14px; }
-    .form-select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%236B7280' d='M1 1l5 5 5-5'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
-
-    /* ── Filter Bar ── */
-    .filter-bar { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
-
-    /* ── Summary Pills ── */
-    .summary-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
-    .pill {
-      background: white; border-radius: 20px;
-      padding: 8px 14px; font-size: 13px; font-weight: 700;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-    }
-    .pill span { font-size: 17px; font-weight: 900; margin-right: 4px; }
-    .pill.blue span  { color: var(--blue); }
-    .pill.green span { color: var(--green); }
-    .pill.gold span  { color: var(--gold); }
-
-    /* ── List Items ── */
-    .list-item {
-      border: 1px solid var(--border); border-radius: 12px;
-      padding: 12px 14px; margin-bottom: 10px;
-      background: white;
-    }
-    .list-item-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
-    .list-item-sub  { font-size: 12px; color: var(--sub); margin-top: 3px; }
-
-    /* ── Visit Card ── */
-    .visit-card {
-      border: 1px solid var(--border); border-radius: 12px;
-      padding: 12px 14px; margin-bottom: 10px; background: white;
-    }
-    .visit-card-head  { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-    .visit-card-shop  { font-weight: 700; font-size: 14px; margin-bottom: 6px; }
-    .visit-card-times { display: flex; gap: 8px; font-size: 12px; color: var(--sub); flex-wrap: wrap; }
-    .visit-card-notes { font-size: 11px; color: var(--sub); margin-top: 6px; line-height: 1.5; }
-    .visit-card-photos { display: flex; gap: 6px; margin-top: 8px; }
-    .thumb { width: 48px; height: 48px; border-radius: 8px; object-fit: cover; cursor: pointer; }
-
-    /* ── Staff Chip ── */
-    .staff-chip { display: inline-flex; align-items: center; gap: 8px; }
-    .staff-chip img, .chip-avatar {
-      width: 28px; height: 28px; border-radius: 50%; object-fit: cover;
-      background: var(--blue-light); color: white;
-      font-size: 12px; font-weight: 700;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-    }
-
-    /* ── Badge ── */
-    .badge {
-      display: inline-block; padding: 3px 10px;
-      border-radius: 20px; font-size: 11px; font-weight: 700;
-    }
-    .badge-in   { background: #FEF3C7; color: #D97706; }
-    .badge-out  { background: #D1FAE5; color: #059669; }
-    .badge-none { background: #F3F4F6; color: #6B7280; }
-
-    /* ── CSV Drop Zone ── */
-    .drop-zone {
-      border: 2px dashed var(--border); border-radius: 14px;
-      padding: 32px 20px; text-align: center; cursor: pointer;
-      color: var(--sub); transition: border-color 0.2s, background 0.2s;
-    }
-    .drop-zone:hover, .drop-zone.drag-over { border-color: var(--blue); background: #EEF4FF; }
-    .drop-zone-icon { font-size: 36px; margin-bottom: 8px; }
-    .drop-zone-text { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
-    .drop-zone-sub  { font-size: 12px; }
-    .import-preview { max-height: 220px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; margin-top: 12px; }
-
-    /* ── Staff Detail ── */
-    .staff-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px; }
-    .staff-detail-grid label { font-size: 11px; color: var(--sub); display: block; margin-bottom: 3px; }
-
-    /* ── Table ── */
-    .tbl-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
-    table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    th {
-      background: #F9FAFB; text-align: left;
-      padding: 10px 12px; font-weight: 700;
-      color: var(--sub); border-bottom: 1px solid var(--border);
-      white-space: nowrap;
-    }
-    td { padding: 10px 12px; border-bottom: 1px solid #F3F4F6; vertical-align: middle; }
-    tr:last-child td { border-bottom: none; }
-
-    /* ── Loading / Empty ── */
-    .loading { text-align: center; padding: 48px 24px; color: var(--sub); }
-    .spinner {
-      width: 28px; height: 28px;
-      border: 3px solid var(--border); border-top-color: var(--blue);
-      border-radius: 50%; animation: spin 0.8s linear infinite;
-      margin: 0 auto 12px;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .empty { text-align: center; padding: 48px 24px; color: var(--sub); }
-    .empty-icon { font-size: 40px; margin-bottom: 10px; }
-
-    /* ── Modal ── */
-    .modal-overlay {
-      display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,0.5); z-index: 200;
-      align-items: flex-end; justify-content: center;
-    }
-    .modal-overlay.open { display: flex; }
-    .modal {
-      background: white; border-radius: 24px 24px 0 0;
-      width: 100%;
-      padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
-      animation: slideUp 0.28s ease;
-    }
-    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-    .modal-handle { width: 36px; height: 4px; background: #E5E7EB; border-radius: 2px; margin: 0 auto 18px; }
-    .modal-title  { font-size: 17px; font-weight: 800; margin-bottom: 16px; }
-    .modal-actions { display: flex; gap: 10px; margin-top: 18px; justify-content: flex-end; }
-
-    /* ── Toast ── */
-    .toast {
-      position: fixed;
-      bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 12px);
-      left: 50%; transform: translateX(-50%);
-      width: calc(min(390px, 100vw) - 32px);
-      background: #1A1A2E; color: white;
-      padding: 13px 20px; border-radius: 14px;
-      font-size: 13px; font-weight: 600;
-      z-index: 999; opacity: 0; transition: opacity 0.25s;
-      text-align: center; pointer-events: none;
-    }
-    .toast.show { opacity: 1; }
-
-    /* ── Bottom Navigation ── */
-    .bottom-nav {
-      flex-shrink: 0;
-      background: white; border-top: 1px solid var(--border);
-      display: flex;
-      height: calc(var(--nav-h) + env(safe-area-inset-bottom));
+    /* Scroll */
+    .scroll-area {
+      flex: 1; overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
       padding-bottom: env(safe-area-inset-bottom);
     }
-    .nav-item {
-      flex: 1;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      gap: 3px;
-      color: #9CA3AF;
-      cursor: pointer; border: none; background: none;
-      font-family: inherit;
-      padding: 6px 2px;
-      transition: color 0.15s;
-      -webkit-user-select: none; user-select: none;
+
+    .section-label {
+      font-size: 11px; font-weight: 700; color: var(--sub);
+      text-transform: uppercase; letter-spacing: .06em;
+      padding: 14px 16px 6px;
     }
-    .nav-item.active { color: var(--blue); }
-    .nav-item:active { opacity: 0.7; }
-    .nav-icon  { font-size: 20px; line-height: 1; }
-    .nav-label { font-size: 10px; font-weight: 700; }
+
+    /* Summary bar */
+    .summary-bar {
+      display: flex; gap: 8px;
+      padding: 12px 16px 4px;
+    }
+    .sum-box {
+      flex: 1; background: white;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 8px; text-align: center;
+    }
+    .sum-num { font-size: 22px; font-weight: 800; color: var(--blue); }
+    .sum-lbl { font-size: 10px; color: var(--sub); margin-top: 1px; }
+
+    /* Team cards */
+    .team-scroll {
+      display: flex; gap: 10px;
+      padding: 0 16px 4px;
+      overflow-x: auto; scrollbar-width: none;
+    }
+    .team-scroll::-webkit-scrollbar { display: none; }
+
+    .team-card {
+      flex-shrink: 0; width: 96px;
+      background: white;
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 8px; text-align: center;
+      cursor: pointer;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .team-card.active {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(0,59,122,.12);
+    }
+    .team-avatar {
+      width: 42px; height: 42px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700;
+      margin: 0 auto 7px;
+    }
+    .av-boom    { background: #fef3c7; color: #b45309; }
+    .av-bee     { background: #dbeafe; color: #1d4ed8; }
+    .av-tan     { background: #dcfce7; color: #15803d; }
+    .av-nueng   { background: #ede9fe; color: #6d28d9; }
+    .av-na      { background: #ffedd5; color: #c2410c; }
+    .av-default { background: #f1f5f9; color: #475569; }
+
+    .team-name { font-size: 13px; font-weight: 700; }
+    .team-big  { font-size: 22px; font-weight: 800; color: var(--blue); line-height: 1.1; margin-top: 5px; }
+    .team-small { font-size: 10px; color: var(--sub); }
+
+    /* Customer link */
+    .goto-btn {
+      display: flex; align-items: center; justify-content: space-between;
+      background: white; border: 1px solid var(--border);
+      border-radius: 12px; padding: 13px 16px;
+      margin: 6px 16px 0; cursor: pointer;
+      text-decoration: none; color: var(--text);
+    }
+    .goto-btn span { font-size: 14px; font-weight: 600; }
+    .goto-arrow { font-size: 20px; color: var(--sub); }
+
+    /* Filter chips */
+    .filter-row {
+      display: flex; gap: 6px;
+      padding: 0 16px 8px;
+      overflow-x: auto; scrollbar-width: none;
+    }
+    .filter-row::-webkit-scrollbar { display: none; }
+    .chip {
+      display: inline-flex; align-items: center;
+      padding: 5px 12px; border-radius: 99px; font-size: 12px; font-weight: 600;
+      border: 1.5px solid var(--border); background: white; color: var(--sub);
+      white-space: nowrap; cursor: pointer; transition: all .15s; flex-shrink: 0;
+    }
+    .chip.active { border-color: var(--blue); background: var(--blue); color: white; }
+
+    /* Feed */
+    .feed-list { padding: 0 16px; display: flex; flex-direction: column; gap: 7px; }
+
+    .feed-item {
+      background: white; border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 11px 13px;
+      display: flex; align-items: flex-start; gap: 10px;
+    }
+    .feed-av {
+      width: 32px; height: 32px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; flex-shrink: 0; margin-top: 1px;
+    }
+    .feed-shop { font-size: 13px; font-weight: 700; }
+    .feed-meta { font-size: 11px; color: var(--sub); margin-top: 3px; }
+    .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+    .dot-in  { background: #10b981; }
+    .dot-out { background: #9ca3af; }
+
+    .empty { text-align: center; padding: 40px 16px; color: var(--sub); font-size: 14px; }
+    .skeleton { background: #e2e8f0; border-radius: 8px; animation: pulse 1.5s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
   </style>
 </head>
 <body>
 <div class="app">
 
-<!-- Header -->
-<div class="header">
-  <div class="header-avatar" id="hdr-avatar"><span id="hdr-initial">M</span></div>
-  <div class="header-info">
-    <div class="header-name" id="hdr-name">Manager</div>
-    <div class="header-sub" id="hdr-date"></div>
-  </div>
-  <div class="header-tag">👔 Manager</div>
-</div>
-
-<div class="scroll-area">
-<!-- ── Tab: History ── -->
-<div class="page active" id="page-history">
-  <div class="container">
-    <div class="card">
-      <div class="card-title">📋 บันทึกการเยี่ยมร้าน</div>
-      <div class="filter-bar">
-        <div class="form-group">
-          <label class="form-label">จาก</label>
-          <input type="date" class="form-input" id="hist-from" />
-        </div>
-        <div class="form-group">
-          <label class="form-label">ถึง</label>
-          <input type="date" class="form-input" id="hist-to" />
-        </div>
-        <div class="form-group">
-          <label class="form-label">พนักงาน</label>
-          <select class="form-select" id="hist-staff">
-            <option value="">ทั้งหมด</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">ร้าน</label>
-          <select class="form-select" id="hist-shop">
-            <option value="">ทั้งหมด</option>
-          </select>
-        </div>
-        <div>
-          <button class="btn btn-primary" style="width:100%" onclick="loadHistory()">🔍 ค้นหา</button>
-        </div>
+  <div class="header">
+    <div class="header-row">
+      <div>
+        <h1>ภาพรวมทีมขาย</h1>
+        <div class="header-date" id="headerDate"></div>
       </div>
-
-      <div class="summary-row" id="hist-summary" style="display:none">
-        <div class="pill blue"><span id="sum-visits">0</span> การเยี่ยม</div>
-        <div class="pill green"><span id="sum-complete">0</span> เสร็จ</div>
-        <div class="pill gold"><span id="sum-inprog">0</span> ค้างอยู่</div>
-      </div>
-
-      <div id="hist-content">
-        <div class="loading"><div class="spinner"></div>กำลังโหลด...</div>
-      </div>
+      <span class="header-badge">ผู้จัดการ</span>
     </div>
   </div>
-</div>
 
-<!-- ── Tab: Assign ── -->
-<div class="page" id="page-assign">
-  <div class="container">
-    <div class="card">
-      <div class="card-title">📅 มอบหมายร้านค้า</div>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">วันที่</label>
-          <input type="date" class="form-input" id="asgn-date" />
-        </div>
-        <div class="form-group">
-          <label class="form-label">พนักงาน</label>
-          <select class="form-select" id="asgn-staff">
-            <option value="">— เลือกพนักงาน —</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">ร้าน</label>
-          <select class="form-select" id="asgn-shop">
-            <option value="">— เลือกร้าน —</option>
-          </select>
-        </div>
-        <div>
-          <button class="btn btn-success" style="width:100%" onclick="createAssignment()">➕ มอบหมาย</button>
-        </div>
-      </div>
+  <div class="scroll-area">
+
+    <!-- Summary -->
+    <div class="summary-bar" id="summaryBar">
+      <div class="sum-box skeleton" style="height:58px"></div>
+      <div class="sum-box skeleton" style="height:58px"></div>
+      <div class="sum-box skeleton" style="height:58px"></div>
     </div>
 
-    <div class="card">
-      <div class="card-title">📋 รายการมอบหมาย</div>
-      <div class="filter-bar">
-        <div class="form-group">
-          <label class="form-label">วันที่</label>
-          <input type="date" class="form-input" id="asgn-view-date" />
-        </div>
-        <div>
-          <button class="btn btn-outline" style="width:100%" onclick="loadAssignments()">🔍 ดู</button>
-        </div>
-      </div>
-      <div id="asgn-list">
-        <div class="loading"><div class="spinner"></div>กำลังโหลด...</div>
-      </div>
+    <!-- Team -->
+    <div class="section-label">ทีมขาย — visit วันนี้</div>
+    <div class="team-scroll" id="teamScroll">
+      <div class="team-card skeleton" style="height:128px"></div>
+      <div class="team-card skeleton" style="height:128px"></div>
+      <div class="team-card skeleton" style="height:128px"></div>
+      <div class="team-card skeleton" style="height:128px"></div>
+      <div class="team-card skeleton" style="height:128px"></div>
     </div>
+
+    <!-- Customer list link -->
+    <div class="section-label">ลูกค้า</div>
+    <a class="goto-btn" href="customer_list.html">
+      <span>รายชื่อลูกค้าทั้งหมด</span>
+      <span class="goto-arrow">›</span>
+    </a>
+
+    <!-- Activity feed -->
+    <div class="section-label">กิจกรรมล่าสุด</div>
+    <div class="filter-row" id="spFilter">
+      <span class="chip active" data-sp="" onclick="filterFeed(this,'')">ทุกคน</span>
+    </div>
+    <div class="feed-list" id="feedList">
+      <div class="feed-item"><div class="skeleton" style="width:32px;height:32px;border-radius:50%;flex-shrink:0"></div><div style="flex:1"><div class="skeleton" style="height:13px;width:60%;margin-bottom:6px"></div><div class="skeleton" style="height:11px;width:85%"></div></div></div>
+      <div class="feed-item"><div class="skeleton" style="width:32px;height:32px;border-radius:50%;flex-shrink:0"></div><div style="flex:1"><div class="skeleton" style="height:13px;width:60%;margin-bottom:6px"></div><div class="skeleton" style="height:11px;width:85%"></div></div></div>
+      <div class="feed-item"><div class="skeleton" style="width:32px;height:32px;border-radius:50%;flex-shrink:0"></div><div style="flex:1"><div class="skeleton" style="height:13px;width:60%;margin-bottom:6px"></div><div class="skeleton" style="height:11px;width:85%"></div></div></div>
+    </div>
+
   </div>
 </div>
-
-<!-- ── Tab: Shops ── -->
-<div class="page" id="page-shops">
-  <div class="container">
-    <div class="card">
-      <div class="card-title">🏪 จัดการร้านค้า
-        <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="openAddShop()">➕ เพิ่มร้าน</button>
-      </div>
-      <div id="shops-list">
-        <div class="loading"><div class="spinner"></div>กำลังโหลด...</div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ── Tab: Import ── -->
-<div class="page" id="page-import">
-  <div class="container">
-    <div class="card">
-      <div class="card-title">📤 นำเข้าร้านค้าจาก CSV</div>
-      <p style="font-size:13px;color:var(--sub);margin-bottom:16px;line-height:1.6">
-        ต้องมีคอลัมน์: <strong>name, lat, lng</strong> (จำเป็น) และ <strong>address, contact_name, contact_phone</strong> (ไม่บังคับ)
-      </p>
-      <div class="drop-zone" id="drop-zone" onclick="document.getElementById('csv-input').click()"
-           ondragover="event.preventDefault();this.classList.add('drag-over')"
-           ondragleave="this.classList.remove('drag-over')"
-           ondrop="handleDrop(event)">
-        <div class="drop-zone-icon">📂</div>
-        <div class="drop-zone-text">ลากไฟล์ CSV มาวาง หรือแตะเพื่อเลือก</div>
-        <div class="drop-zone-sub">รองรับ .csv เท่านั้น</div>
-      </div>
-      <input type="file" id="csv-input" accept=".csv" style="display:none" onchange="handleCSV(event)" />
-
-      <div id="import-preview" style="display:none">
-        <div class="import-preview">
-          <table id="preview-table">
-            <thead><tr><th>#</th><th>ชื่อร้าน</th><th>ที่อยู่</th><th>Lat</th><th>Lng</th><th>ติดต่อ</th></tr></thead>
-            <tbody id="preview-body"></tbody>
-          </table>
-        </div>
-        <div style="display:flex;gap:10px;margin-top:12px;align-items:center">
-          <span id="preview-count" style="font-size:13px;color:var(--sub);flex:1"></span>
-          <button class="btn btn-outline btn-sm" onclick="clearImport()">ล้าง</button>
-          <button class="btn btn-success btn-sm" id="import-btn" onclick="doImport()">✅ นำเข้า</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="card" style="font-size:13px;color:var(--sub)">
-      <div class="card-title" style="font-size:14px">📝 ตัวอย่าง CSV</div>
-      <pre style="background:#F3F4F6;padding:12px;border-radius:8px;overflow-x:auto;font-size:11px;line-height:1.7">name,address,lat,lng,contact_name,contact_phone
-ร้านข้าวต้มเมืองทอง,15/3 ถ.สุขุมวิท,13.7563,100.5018,สมชาย,0812345678
-ร้านอาหารทะเล Ocean,พัทยา ชลบุรี,12.9272,100.8770,,</pre>
-    </div>
-  </div>
-</div>
-
-<!-- ── Tab: Staff ── -->
-<div class="page" id="page-staff">
-  <div class="container">
-    <div class="card">
-      <div class="card-title">👥 จัดการพนักงาน
-        <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="openAddStaff()">➕ เพิ่ม</button>
-      </div>
-      <div id="staff-list">
-        <div class="loading"><div class="spinner"></div>กำลังโหลด...</div>
-      </div>
-    </div>
-  </div>
-</div>
-
-</div><!-- end scroll-area -->
-
-<!-- Modal: Add Shop -->
-<div class="modal-overlay" id="shop-modal" onclick="if(event.target===this)closeShopModal()">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">➕ เพิ่มร้านค้า</div>
-    <div class="form-group" style="margin-bottom:10px">
-      <label class="form-label">ชื่อร้าน *</label>
-      <input type="text" class="form-input" id="sm-name" placeholder="ชื่อร้าน" />
-    </div>
-    <div class="form-group" style="margin-bottom:10px">
-      <label class="form-label">ที่อยู่</label>
-      <input type="text" class="form-input" id="sm-address" placeholder="ที่อยู่" />
-    </div>
-    <div class="form-row" style="flex-direction:row">
-      <div class="form-group">
-        <label class="form-label">Latitude *</label>
-        <input type="number" step="any" class="form-input" id="sm-lat" placeholder="13.7563" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Longitude *</label>
-        <input type="number" step="any" class="form-input" id="sm-lng" placeholder="100.5018" />
-      </div>
-    </div>
-    <div class="form-row" style="flex-direction:row">
-      <div class="form-group">
-        <label class="form-label">ชื่อผู้ติดต่อ</label>
-        <input type="text" class="form-input" id="sm-contact" placeholder="ชื่อ" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">เบอร์โทร</label>
-        <input type="tel" class="form-input" id="sm-phone" placeholder="08x-xxx-xxxx" />
-      </div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-outline" onclick="closeShopModal()">ยกเลิก</button>
-      <button class="btn btn-success" onclick="saveShop()">✅ บันทึก</button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal: Add Staff -->
-<div class="modal-overlay" id="staff-modal" onclick="if(event.target===this)closeStaffModal()">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">➕ เพิ่มพนักงาน</div>
-    <div class="form-group" style="margin-bottom:10px">
-      <label class="form-label">ชื่อที่แสดง *</label>
-      <input type="text" class="form-input" id="ns-name" placeholder="ชื่อ นามสกุล" />
-    </div>
-    <div class="form-group" style="margin-bottom:10px">
-      <label class="form-label">บทบาท *</label>
-      <select class="form-select" id="ns-role">
-        <option value="sales">🧑 Sales</option>
-        <option value="manager">👔 Manager</option>
-      </select>
-    </div>
-    <div class="form-group" style="margin-bottom:10px">
-      <label class="form-label">เบอร์โทร (สำหรับลงทะเบียน)</label>
-      <input type="tel" class="form-input" id="ns-phone" placeholder="0812345678" />
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-outline" onclick="closeStaffModal()">ยกเลิก</button>
-      <button class="btn btn-success" onclick="saveNewStaff()">✅ เพิ่ม</button>
-    </div>
-  </div>
-</div>
-
-<div class="toast" id="toast"></div>
-
-<!-- Bottom Navigation -->
-<nav class="bottom-nav">
-  <button class="nav-item active" onclick="switchTab('history')">
-    <span class="nav-icon">📋</span>
-    <span class="nav-label">ประวัติ</span>
-  </button>
-  <button class="nav-item" onclick="switchTab('assign')">
-    <span class="nav-icon">📅</span>
-    <span class="nav-label">มอบหมาย</span>
-  </button>
-  <button class="nav-item" onclick="switchTab('shops')">
-    <span class="nav-icon">🏪</span>
-    <span class="nav-label">ร้านค้า</span>
-  </button>
-  <button class="nav-item" onclick="switchTab('import')">
-    <span class="nav-icon">📤</span>
-    <span class="nav-label">นำเข้า</span>
-  </button>
-  <button class="nav-item" onclick="switchTab('staff')">
-    <span class="nav-icon">👥</span>
-    <span class="nav-label">พนักงาน</span>
-  </button>
-</nav>
 
 <script>
-  const SUPABASE_URL  = 'https://vuqcoadeexyqmaoldkzt.supabase.co';
-  const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1cWNvYWRlZXh5cW1hb2xka3p0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2NzE2NjQsImV4cCI6MjA5NjI0NzY2NH0.jLnRNjI7wq6fJ_hFUpO2OZiN39wQAsU-IhrYC8DOZsU';
-  const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+const SUPABASE_URL  = 'https://vuqcoadeexyqmaoldkzt.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1cWNvYWRlZXh5cW1hb2xka3p0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2NzE2NjQsImV4cCI6MjA5NjI0NzY2NH0.jLnRNjI7wq6fJ_hFUpO2OZiN39wQAsU-IhrYC8DOZsU';
 
-  let S = { session: null, salesStaff: [], allShops: [], importRows: [] };
+const AV_CLS    = { 'บูม':'av-boom','บี้':'av-bee','แทน':'av-tan','หนึ่ง':'av-nueng','นะ':'av-na' };
+const SP_ORDER  = ['บูม','บี้','แทน','หนึ่ง','นะ'];
 
-  // ── Init ────────────────────────────────────────────
-  async function init() {
-    const raw = localStorage.getItem('scg_session');
-    S.session = raw ? JSON.parse(raw) : { line_user_id: 'dev', display_name: 'Test Manager', picture_url: null, staff_id: 1, role: 'manager' };
+let allStaff  = [];
+let allShops  = [];
+let allVisits = [];
+let activeSpFilter = '';
 
-    document.getElementById('hdr-name').textContent = S.session.display_name;
-    document.getElementById('hdr-initial').textContent = S.session.display_name[0] || 'M';
-    if (S.session.picture_url) {
-      document.getElementById('hdr-avatar').innerHTML = `<img src="${S.session.picture_url}" />`;
-    }
-    document.getElementById('hdr-date').textContent = new Date().toLocaleDateString('th-TH', { weekday:'long', day:'numeric', month:'long' });
+function apiGet(path) {
+  return fetch(`${SUPABASE_URL}${path}`, {
+    headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` }
+  }).then(r => r.json());
+}
 
-    const today = new Date().toISOString().slice(0, 10);
-    document.getElementById('hist-from').value       = sub30d(today);
-    document.getElementById('hist-to').value         = today;
-    document.getElementById('asgn-date').value       = today;
-    document.getElementById('asgn-view-date').value  = today;
+function fmtTime(iso) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+}
+function fmtDate(iso) {
+  if (!iso) return '';
+  const d    = new Date(iso);
+  const today = new Date();
+  if (d.toDateString() === today.toDateString()) return 'วันนี้';
+  const diff = Math.floor((today - d) / 86400000);
+  if (diff === 1) return 'เมื่อวาน';
+  return d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+}
 
-    await Promise.all([loadStaff(), loadShops()]);
-    await Promise.all([loadHistory(), loadAssignments()]);
+async function load() {
+  document.getElementById('headerDate').textContent =
+    new Date().toLocaleDateString('th-TH', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+
+  const [staffData, shopsData, visitsData] = await Promise.all([
+    apiGet('/rest/v1/staff?select=id,display_name,role&is_active=eq.true'),
+    apiGet('/rest/v1/shops?select=id,name,salesperson&is_active=eq.true'),
+    apiGet('/rest/v1/visits?select=id,checkin_at,checkout_at,status,staff_id,shop_id&order=checkin_at.desc&limit=100')
+  ]);
+
+  if (staffData.error) {
+    document.getElementById('feedList').innerHTML = `<div class="empty">โหลดข้อมูลไม่สำเร็จ: ${staffData.message}</div>`;
+    return;
   }
 
-  function sub30d(iso) {
-    const d = new Date(iso); d.setDate(d.getDate() - 30);
-    return d.toISOString().slice(0, 10);
-  }
+  allStaff  = staffData.filter(s => s.role === 'sales');
+  allShops  = shopsData;
+  allVisits = Array.isArray(visitsData) ? visitsData : [];
 
-  // ── Tab Switch ───────────────────────────────────────
-  function switchTab(tab) {
-    const tabs = ['history', 'assign', 'shops', 'import', 'staff'];
-    document.querySelectorAll('.nav-item').forEach((t, i) => {
-      t.classList.toggle('active', tabs[i] === tab);
+  renderSummary();
+  renderTeam();
+  renderSpFilter();
+  renderFeed();
+}
+
+function renderSummary() {
+  const todayStr    = new Date().toDateString();
+  const todayVisits = allVisits.filter(v => new Date(v.checkin_at).toDateString() === todayStr);
+  const checkedIn   = allVisits.filter(v => v.status === 'checked_in').length;
+
+  document.getElementById('summaryBar').innerHTML = `
+    <div class="sum-box">
+      <div class="sum-num">${todayVisits.length}</div>
+      <div class="sum-lbl">visit วันนี้</div>
+    </div>
+    <div class="sum-box">
+      <div class="sum-num">${checkedIn}</div>
+      <div class="sum-lbl">กำลัง check-in</div>
+    </div>
+    <div class="sum-box">
+      <div class="sum-num">${allShops.length}</div>
+      <div class="sum-lbl">ลูกค้าทั้งหมด</div>
+    </div>`;
+}
+
+function renderTeam() {
+  const todayStr  = new Date().toDateString();
+  const staffById = {};
+  allStaff.forEach(s => staffById[s.id] = s.display_name);
+
+  const shopsBySP = {};
+  allShops.forEach(sh => { shopsBySP[sh.salesperson] = (shopsBySP[sh.salesperson] || 0) + 1; });
+
+  const visitsTodayBySP = {};
+  allVisits
+    .filter(v => new Date(v.checkin_at).toDateString() === todayStr)
+    .forEach(v => {
+      const name = staffById[v.staff_id];
+      if (name) visitsTodayBySP[name] = (visitsTodayBySP[name] || 0) + 1;
     });
-    tabs.forEach(id => {
-      document.getElementById('page-' + id).classList.toggle('active', id === tab);
-    });
-    if (tab === 'shops') loadShopsList();
-    if (tab === 'staff') loadStaffList();
+
+  const salesStaff = SP_ORDER
+    .map(name => allStaff.find(s => s.display_name === name))
+    .filter(Boolean);
+
+  document.getElementById('teamScroll').innerHTML = salesStaff.map(s => `
+    <div class="team-card" id="tc-${s.id}" onclick="focusSP('${s.display_name}')">
+      <div class="team-avatar ${AV_CLS[s.display_name] || 'av-default'}">${s.display_name}</div>
+      <div class="team-name">${s.display_name}</div>
+      <div class="team-big">${visitsTodayBySP[s.display_name] || 0}</div>
+      <div class="team-small">visit วันนี้</div>
+      <div class="team-small" style="margin-top:4px">${shopsBySP[s.display_name] || 0} ลูกค้า</div>
+    </div>`).join('');
+}
+
+function renderSpFilter() {
+  const salesStaff = SP_ORDER
+    .map(name => allStaff.find(s => s.display_name === name))
+    .filter(Boolean);
+
+  document.getElementById('spFilter').innerHTML =
+    `<span class="chip active" data-sp="" onclick="filterFeed(this,'')">ทุกคน</span>` +
+    salesStaff.map(s =>
+      `<span class="chip" data-sp="${s.display_name}" onclick="filterFeed(this,'${s.display_name}')">${s.display_name}</span>`
+    ).join('');
+}
+
+function filterFeed(el, val) {
+  activeSpFilter = val;
+  document.querySelectorAll('#spFilter .chip').forEach(c =>
+    c.classList.toggle('active', c === el)
+  );
+  renderFeed();
+}
+
+function focusSP(name) {
+  activeSpFilter = name;
+  document.querySelectorAll('#spFilter .chip').forEach(c =>
+    c.classList.toggle('active', c.dataset.sp === name)
+  );
+  document.querySelectorAll('.team-card').forEach(c => c.classList.remove('active'));
+  const sp = allStaff.find(s => s.display_name === name);
+  if (sp) document.getElementById(`tc-${sp.id}`)?.classList.add('active');
+  renderFeed();
+  document.getElementById('feedList').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderFeed() {
+  const staffById = {};
+  allStaff.forEach(s => staffById[s.id] = s.display_name);
+
+  const shopById = {};
+  allShops.forEach(sh => shopById[sh.id] = sh.name);
+
+  let visits = allVisits;
+  if (activeSpFilter) {
+    const spId = allStaff.find(s => s.display_name === activeSpFilter)?.id;
+    visits = visits.filter(v => v.staff_id === spId);
   }
 
-  // ── Load Staff + Shops (for dropdowns) ───────────────
-  async function loadStaff() {
-    const { data } = await db.from('staff').select('id, display_name, picture_url, role').eq('is_active', true).order('display_name');
-    S.salesStaff = (data || []).filter(s => s.role === 'sales');
-    ['hist-staff', 'asgn-staff'].forEach(id => {
-      const el = document.getElementById(id);
-      const prev = id === 'hist-staff' ? '<option value="">ทั้งหมด</option>' : '<option value="">— เลือกพนักงาน —</option>';
-      el.innerHTML = prev + S.salesStaff.map(s => `<option value="${s.id}">${esc(s.display_name)}</option>`).join('');
-    });
+  if (!visits.length) {
+    document.getElementById('feedList').innerHTML = `<div class="empty">ยังไม่มีกิจกรรม</div>`;
+    return;
   }
 
-  async function loadShops() {
-    const { data } = await db.from('shops').select('id, name, address, lat, lng, contact_name, contact_phone').eq('is_active', true).order('name');
-    S.allShops = data || [];
-    ['hist-shop', 'asgn-shop'].forEach(id => {
-      const el = document.getElementById(id);
-      const prev = id === 'hist-shop' ? '<option value="">ทั้งหมด</option>' : '<option value="">— เลือกร้าน —</option>';
-      el.innerHTML = prev + S.allShops.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('');
-    });
-  }
-
-  // ── History ──────────────────────────────────────────
-  async function loadHistory() {
-    document.getElementById('hist-content').innerHTML = '<div class="loading"><div class="spinner"></div>กำลังโหลด...</div>';
-    document.getElementById('hist-summary').style.display = 'none';
-
-    const from    = document.getElementById('hist-from').value;
-    const to      = document.getElementById('hist-to').value;
-    const staffId = document.getElementById('hist-staff').value || null;
-    const shopId  = document.getElementById('hist-shop').value  || null;
-
-    const { data, error } = await db.rpc('get_visit_history', {
-      p_from: from, p_to: to,
-      p_staff_id: staffId ? parseInt(staffId) : null,
-      p_shop_id:  shopId  ? parseInt(shopId)  : null,
-    });
-
-    if (error || !data?.ok) {
-      document.getElementById('hist-content').innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div>โหลดไม่ได้</div>';
-      return;
-    }
-
-    const visits = data.visits || [];
-    const done   = visits.filter(v => v.status === 'checked_out').length;
-    const inprog = visits.length - done;
-
-    document.getElementById('sum-visits').textContent   = visits.length;
-    document.getElementById('sum-complete').textContent = done;
-    document.getElementById('sum-inprog').textContent   = inprog;
-    document.getElementById('hist-summary').style.display = visits.length ? 'flex' : 'none';
-
-    if (visits.length === 0) {
-      document.getElementById('hist-content').innerHTML = '<div class="empty"><div class="empty-icon">📋</div>ไม่พบข้อมูล</div>';
-      return;
-    }
-
-    document.getElementById('hist-content').innerHTML = visits.map(v => `
-      <div class="visit-card">
-        <div class="visit-card-head">
-          <div class="staff-chip">
-            ${v.staff_picture
-              ? `<img src="${v.staff_picture}" style="width:28px;height:28px;border-radius:50%;object-fit:cover">`
-              : `<div style="width:28px;height:28px;border-radius:50%;background:var(--blue-light);color:white;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">${(v.staff_name||'?')[0]}</div>`}
-            <span style="font-weight:600;font-size:13px">${esc(v.staff_name)}</span>
-          </div>
-          ${v.status === 'checked_out'
-            ? '<span class="badge badge-out">✅ เสร็จ</span>'
-            : '<span class="badge badge-in">🟡 กำลังเยี่ยม</span>'}
-        </div>
-        <div class="visit-card-shop">🏪 ${esc(v.shop_name)}</div>
-        <div class="visit-card-times">
-          <span>⬆️ ${fmtDate(v.checkin_at)} ${fmtTime(v.checkin_at)}</span>
-          ${v.checkout_at ? `<span>⬇️ ${fmtTime(v.checkout_at)}</span>` : ''}
-          ${v.duration_minutes != null ? `<span>⏱ ${v.duration_minutes} นาที</span>` : ''}
-        </div>
-        ${v.checkin_notes || v.checkout_notes
-          ? `<div class="visit-card-notes">${[v.checkin_notes, v.checkout_notes].filter(Boolean).map(n => esc(n)).join(' · ')}</div>`
-          : ''}
-        ${v.checkin_photo_url || v.checkout_photo_url
-          ? `<div class="visit-card-photos">
-              ${v.checkin_photo_url  ? `<img class="thumb" src="${v.checkin_photo_url}" onclick="viewPhoto('${v.checkin_photo_url}')">` : ''}
-              ${v.checkout_photo_url ? `<img class="thumb" src="${v.checkout_photo_url}" onclick="viewPhoto('${v.checkout_photo_url}')">` : ''}
-            </div>`
-          : ''}
-      </div>`).join('');
-  }
-
-  // ── Assignments ──────────────────────────────────────
-  async function loadAssignments() {
-    const date = document.getElementById('asgn-view-date').value;
-    document.getElementById('asgn-list').innerHTML = '<div class="loading"><div class="spinner"></div>กำลังโหลด...</div>';
-
-    const { data: rows, error } = await db
-      .from('assignments')
-      .select('id, assigned_date, shop:shops(id,name,address), staff:staff!assignments_staff_id_fkey(id,display_name,picture_url)')
-      .eq('assigned_date', date)
-      .eq('is_active', true)
-      .order('id');
-
-    if (error || !rows) {
-      document.getElementById('asgn-list').innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div>โหลดไม่ได้</div>';
-      return;
-    }
-    if (rows.length === 0) {
-      document.getElementById('asgn-list').innerHTML = '<div class="empty"><div class="empty-icon">📅</div>ไม่มีการมอบหมายในวันนี้</div>';
-      return;
-    }
-
-    document.getElementById('asgn-list').innerHTML = rows.map(a => `
-      <div class="list-item">
-        <div class="list-item-head">
-          <div style="flex:1;min-width:0">
-            <strong>${esc(a.shop?.name)}</strong>
-            ${a.shop?.address ? `<div class="list-item-sub">${esc(a.shop.address)}</div>` : ''}
-          </div>
-          <button class="btn btn-danger btn-sm" onclick="deleteAssignment(${a.id})">🗑</button>
-        </div>
-        <div class="staff-chip" style="margin-top:10px">
-          ${a.staff?.picture_url
-            ? `<img src="${a.staff.picture_url}" style="width:26px;height:26px;border-radius:50%;object-fit:cover">`
-            : `<div style="width:26px;height:26px;border-radius:50%;background:var(--blue-light);color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center">${(a.staff?.display_name||'?')[0]}</div>`}
-          <span style="font-size:13px">${esc(a.staff?.display_name)}</span>
-        </div>
-      </div>`).join('');
-  }
-
-  async function createAssignment() {
-    const date    = document.getElementById('asgn-date').value;
-    const staffId = document.getElementById('asgn-staff').value;
-    const shopId  = document.getElementById('asgn-shop').value;
-    if (!date || !staffId || !shopId) { showToast('❌ กรุณากรอกข้อมูลให้ครบ'); return; }
-
-    const { data, error } = await db.rpc('create_assignment', {
-      p_line_user_id:  S.session.line_user_id,
-      p_shop_id:       parseInt(shopId),
-      p_staff_id:      parseInt(staffId),
-      p_assigned_date: date,
-    });
-    if (error || !data?.ok) { showToast('❌ ' + (data?.reason || error?.message || 'ไม่สำเร็จ')); return; }
-    showToast('✅ มอบหมายสำเร็จ');
-    loadAssignments();
-  }
-
-  async function deleteAssignment(id) {
-    if (!confirm('ลบการมอบหมายนี้?')) return;
-    const { data } = await db.rpc('delete_assignment', {
-      p_line_user_id: S.session.line_user_id,
-      p_assignment_id: id,
-    });
-    if (data?.ok) { showToast('✅ ลบแล้ว'); loadAssignments(); }
-    else showToast('❌ ลบไม่ได้');
-  }
-
-  // ── Shops List ────────────────────────────────────────
-  async function loadShopsList() {
-    document.getElementById('shops-list').innerHTML = '<div class="loading"><div class="spinner"></div>กำลังโหลด...</div>';
-    const { data, error } = await db.from('shops').select('*').eq('is_active', true).order('name');
-    if (error || !data?.length) {
-      document.getElementById('shops-list').innerHTML = '<div class="empty"><div class="empty-icon">🏪</div>ยังไม่มีร้านค้า</div>';
-      return;
-    }
-    document.getElementById('shops-list').innerHTML = data.map(s => `
-      <div class="list-item">
-        <strong>${esc(s.name)}</strong>
-        ${s.address ? `<div class="list-item-sub">${esc(s.address)}</div>` : ''}
-        <div class="list-item-sub" style="margin-top:4px">📍 ${s.lat}, ${s.lng}</div>
-        ${s.contact_name ? `<div class="list-item-sub">${esc(s.contact_name)}${s.contact_phone ? ' · ' + esc(s.contact_phone) : ''}</div>` : ''}
-      </div>`).join('');
-  }
-
-  function openAddShop() {
-    ['sm-name','sm-address','sm-lat','sm-lng','sm-contact','sm-phone'].forEach(id => {
-      document.getElementById(id).value = '';
-    });
-    document.getElementById('shop-modal').classList.add('open');
-  }
-  function closeShopModal() { document.getElementById('shop-modal').classList.remove('open'); }
-
-  async function saveShop() {
-    const name = document.getElementById('sm-name').value.trim();
-    const lat  = parseFloat(document.getElementById('sm-lat').value);
-    const lng  = parseFloat(document.getElementById('sm-lng').value);
-    if (!name || isNaN(lat) || isNaN(lng)) { showToast('❌ กรุณากรอก ชื่อ, Lat, Lng'); return; }
-
-    const { error } = await db.from('shops').insert({
-      name, address: document.getElementById('sm-address').value.trim() || null,
-      lat, lng,
-      contact_name:  document.getElementById('sm-contact').value.trim() || null,
-      contact_phone: document.getElementById('sm-phone').value.trim() || null,
-      imported_by: S.session.staff_id,
-    });
-    if (error) { showToast('❌ ' + error.message); return; }
-    showToast('✅ เพิ่มร้านสำเร็จ');
-    closeShopModal();
-    await loadShops();
-    loadShopsList();
-  }
-
-  // ── CSV Import ────────────────────────────────────────
-  function handleDrop(e) {
-    e.preventDefault();
-    document.getElementById('drop-zone').classList.remove('drag-over');
-    const file = e.dataTransfer.files[0];
-    if (file) parseCSVFile(file);
-  }
-
-  function handleCSV(e) {
-    const file = e.target.files[0];
-    if (file) parseCSVFile(file);
-    e.target.value = '';
-  }
-
-  function parseCSVFile(file) {
-    const reader = new FileReader();
-    reader.onload = ev => {
-      const lines  = ev.target.result.trim().split('\n');
-      const header = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/^"|"$/g, ''));
-      const idx = k => header.findIndex(h => h === k);
-      const cols = {
-        name: idx('name'), address: idx('address'),
-        lat: idx('lat'), lng: idx('lng'),
-        contact_name: idx('contact_name'), contact_phone: idx('contact_phone'),
-      };
-      if (cols.name < 0 || cols.lat < 0 || cols.lng < 0) {
-        showToast('❌ ไม่พบคอลัมน์ name, lat หรือ lng'); return;
-      }
-      S.importRows = [];
-      const tbody = document.getElementById('preview-body');
-      tbody.innerHTML = '';
-      lines.slice(1).forEach((line) => {
-        if (!line.trim()) return;
-        const cells = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
-        const row = {
-          name:          cells[cols.name] || '',
-          address:       cols.address >= 0 ? cells[cols.address] || null : null,
-          lat:           parseFloat(cells[cols.lat]),
-          lng:           parseFloat(cells[cols.lng]),
-          contact_name:  cols.contact_name >= 0 ? cells[cols.contact_name] || null : null,
-          contact_phone: cols.contact_phone >= 0 ? cells[cols.contact_phone] || null : null,
-        };
-        if (!row.name || isNaN(row.lat) || isNaN(row.lng)) return;
-        S.importRows.push(row);
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${S.importRows.length}</td><td>${esc(row.name)}</td><td>${esc(row.address||'')}</td><td>${row.lat}</td><td>${row.lng}</td><td>${esc(row.contact_name||'')}${row.contact_phone?' · '+esc(row.contact_phone):''}</td>`;
-        tbody.appendChild(tr);
-      });
-      document.getElementById('preview-count').textContent = `${S.importRows.length} ร้านที่พร้อมนำเข้า`;
-      document.getElementById('import-preview').style.display = 'block';
-    };
-    reader.readAsText(file, 'UTF-8');
-  }
-
-  function clearImport() {
-    S.importRows = [];
-    document.getElementById('import-preview').style.display = 'none';
-    document.getElementById('preview-body').innerHTML = '';
-  }
-
-  async function doImport() {
-    if (!S.importRows.length) return;
-    const btn = document.getElementById('import-btn');
-    btn.disabled = true; btn.textContent = 'กำลังนำเข้า...';
-    const { data, error } = await db.rpc('import_shops', {
-      p_line_user_id: S.session.line_user_id,
-      p_shops: S.importRows,
-    });
-    btn.disabled = false; btn.textContent = '✅ นำเข้า';
-    if (error || !data?.ok) { showToast('❌ ' + (data?.reason || error?.message || 'ไม่สำเร็จ')); return; }
-    showToast(`✅ นำเข้าสำเร็จ ${data.inserted} ร้าน (ข้าม ${data.skipped})`);
-    clearImport();
-    await loadShops();
-  }
-
-  // ── Staff Management ──────────────────────────────────
-  async function loadStaffList() {
-    document.getElementById('staff-list').innerHTML = '<div class="loading"><div class="spinner"></div>กำลังโหลด...</div>';
-    const { data, error } = await db.from('staff')
-      .select('id, display_name, picture_url, role, is_active, line_user_id, phone')
-      .order('display_name');
-    if (error || !data?.length) {
-      document.getElementById('staff-list').innerHTML = '<div class="empty"><div class="empty-icon">👥</div>ยังไม่มีพนักงาน</div>';
-      return;
-    }
-    document.getElementById('staff-list').innerHTML = data.map(s => `
-      <div class="list-item">
-        <div class="list-item-head">
-          <div class="staff-chip" onclick="toggleStaffExpand(${s.id})" style="cursor:pointer;flex:1">
-            ${s.picture_url
-              ? `<img src="${s.picture_url}" style="width:36px;height:36px;border-radius:50%;object-fit:cover">`
-              : `<div style="width:36px;height:36px;border-radius:50%;background:var(--blue-light);color:white;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center">${(s.display_name||'?')[0]}</div>`}
-            <div>
-              <div style="font-weight:600;font-size:14px">${esc(s.display_name)}</div>
-              ${s.nickname ? `<div style="font-size:11px;color:var(--sub)">(${esc(s.nickname)})</div>` : ''}
-            </div>
-          </div>
-          <button class="btn btn-sm ${s.is_active ? 'btn-danger' : 'btn-success'}"
-            onclick="toggleStaffActive(${s.id}, ${s.is_active})">
-            ${s.is_active ? '🚫 ระงับ' : '✅ เปิดใช้'}
-          </button>
-        </div>
-        <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
-          <select class="form-select" style="flex:1;padding:8px 12px;font-size:14px"
-            onchange="updateStaffRole(${s.id}, this.value)">
-            <option value="sales"   ${s.role === 'sales'   ? 'selected' : ''}>🧑 Sales</option>
-            <option value="manager" ${s.role === 'manager' ? 'selected' : ''}>👔 Manager</option>
-          </select>
-          <span class="badge ${s.is_active ? 'badge-out' : 'badge-none'}">
-            ${s.is_active ? '✅ ใช้งาน' : '🚫 ระงับ'}
-          </span>
-        </div>
-        <div id="staff-detail-${s.id}" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
-          <div class="staff-detail-grid">
-            <div style="grid-column:1/-1">
-              <label>เบอร์มือถือ (ใช้ลงทะเบียน)</label>
-              <div style="display:flex;gap:8px;align-items:center;margin-top:4px">
-                <input type="tel" class="form-input" id="phone-${s.id}"
-                  value="${esc(s.phone||'')}" placeholder="0812345678"
-                  style="flex:1;padding:9px 12px;font-size:15px" />
-                <button class="btn btn-primary btn-sm" onclick="saveStaffPhone(${s.id})">บันทึก</button>
-              </div>
-            </div>
-            <div style="grid-column:1/-1">
-              <label>LINE ID</label>
-              <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
-                <span style="font-size:11px;word-break:break-all;flex:1;color:var(--sub)">${s.line_user_id ? esc(s.line_user_id) : '(ยังไม่ได้ลงทะเบียน)'}</span>
-                ${s.line_user_id ? `<button class="btn btn-danger btn-sm" onclick="clearLineId(${s.id})">🔄 ล้าง</button>` : ''}
-              </div>
-            </div>
+  document.getElementById('feedList').innerHTML = visits.slice(0, 50).map(v => {
+    const name   = staffById[v.staff_id] || '?';
+    const shop   = shopById[v.shop_id]   || `ร้าน #${v.shop_id}`;
+    const isIn   = v.status === 'checked_in';
+    const timeIn = fmtTime(v.checkin_at);
+    const timeOut = v.checkout_at ? ' – ' + fmtTime(v.checkout_at) : '';
+    const dateStr = fmtDate(v.checkin_at);
+    return `
+      <div class="feed-item">
+        <div class="feed-av ${AV_CLS[name] || 'av-default'}">${name}</div>
+        <div style="flex:1;min-width:0">
+          <div class="feed-shop">${shop}</div>
+          <div class="feed-meta">
+            <span class="dot ${isIn ? 'dot-in' : 'dot-out'}"></span>
+            ${name} · ${dateStr} ${timeIn}${timeOut}
           </div>
         </div>
-      </div>`).join('');
-  }
+      </div>`;
+  }).join('');
+}
 
-  function toggleStaffExpand(id) {
-    const detail = document.getElementById('staff-detail-' + id);
-    if (!detail) return;
-    detail.style.display = detail.style.display !== 'none' ? 'none' : 'block';
-  }
-
-  async function updateStaffRole(staffId, newRole) {
-    const { data, error } = await db.rpc('update_staff_role', {
-      p_line_user_id: S.session.line_user_id,
-      p_staff_id:     staffId,
-      p_role:         newRole,
-    });
-    if (error || !data?.ok) {
-      showToast('❌ เปลี่ยน Role ไม่สำเร็จ: ' + (data?.reason || error?.message || 'ไม่ทราบสาเหตุ'));
-      loadStaffList(); return;
-    }
-    showToast(`✅ เปลี่ยน Role เป็น ${newRole} แล้ว`);
-    await loadStaff();
-  }
-
-  function openAddStaff() {
-    ['ns-name', 'ns-phone'].forEach(id => document.getElementById(id).value = '');
-    document.getElementById('ns-role').value = 'sales';
-    document.getElementById('staff-modal').classList.add('open');
-  }
-  function closeStaffModal() { document.getElementById('staff-modal').classList.remove('open'); }
-
-  async function saveNewStaff() {
-    const name  = document.getElementById('ns-name').value.trim();
-    const role  = document.getElementById('ns-role').value;
-    const phone = document.getElementById('ns-phone').value.trim();
-    if (!name) { showToast('❌ กรุณากรอกชื่อ'); return; }
-
-    const { data, error } = await db.rpc('create_staff', {
-      p_line_user_id: S.session.line_user_id,
-      p_display_name: name,
-      p_role:         role,
-      p_phone:        phone || null,
-    });
-    if (error || !data?.ok) { showToast('❌ ' + (data?.reason || error?.message || 'ไม่สำเร็จ')); return; }
-    showToast('✅ เพิ่มพนักงานแล้ว');
-    closeStaffModal();
-    loadStaffList();
-    await loadStaff();
-  }
-
-  async function clearLineId(staffId) {
-    if (!confirm('ล้าง LINE ID ของพนักงานคนนี้?\nเขาจะต้องลงทะเบียนใหม่ครั้งถัดไป')) return;
-    const { data, error } = await db.rpc('clear_staff_line_id', {
-      p_line_user_id: S.session.line_user_id,
-      p_staff_id:     staffId,
-    });
-    if (error || !data?.ok) { showToast('❌ ' + (data?.reason || error?.message)); return; }
-    showToast('✅ ล้าง LINE ID แล้ว');
-    loadStaffList();
-  }
-
-  async function saveStaffPhone(staffId) {
-    const phone = document.getElementById('phone-' + staffId).value.trim();
-    const { data, error } = await db.rpc('update_staff_phone', {
-      p_line_user_id: S.session.line_user_id,
-      p_staff_id:     staffId,
-      p_phone:        phone,
-    });
-    if (error || !data?.ok) { showToast('❌ ' + (data?.reason || error?.message || 'ไม่สำเร็จ')); return; }
-    showToast('✅ บันทึกเบอร์โทรแล้ว');
-  }
-
-  async function toggleStaffActive(staffId, currentActive) {
-    const { data, error } = await db.rpc('update_staff_active', {
-      p_line_user_id: S.session.line_user_id,
-      p_staff_id:     staffId,
-      p_is_active:    !currentActive,
-    });
-    if (error || !data?.ok) {
-      showToast('❌ ไม่สำเร็จ: ' + (data?.reason || error?.message || 'ไม่ทราบสาเหตุ'));
-      return;
-    }
-    showToast(currentActive ? '🚫 ระงับบัญชีแล้ว' : '✅ เปิดใช้งานแล้ว');
-    loadStaffList();
-    await loadStaff();
-  }
-
-  // ── Utils ─────────────────────────────────────────────
-  function esc(s) { return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-  function fmtDate(iso) { return new Date(iso).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' }); }
-  function fmtTime(iso) { return new Date(iso).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }); }
-  function viewPhoto(url) { window.open(url, '_blank'); }
-
-  let _tt;
-  function showToast(msg) {
-    const el = document.getElementById('toast');
-    el.textContent = msg; el.classList.add('show');
-    clearTimeout(_tt); _tt = setTimeout(() => el.classList.remove('show'), 3000);
-  }
-
-  init();
+load();
 </script>
-</div><!-- end app -->
 </body>
 </html>

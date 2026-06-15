@@ -10,6 +10,8 @@
 - Backend: Supabase (PostgreSQL + REST API + RLS)
 - Auth: LINE LIFF
 - Deploy: Vercel (static)
+- Live URL: `https://scg-salestracking.vercel.app/`
+- GitHub: `https://github.com/metaluxe2529-coder/SCGSalestracking`
 
 ## Supabase
 - URL: `https://vuqcoadeexyqmaoldkzt.supabase.co`

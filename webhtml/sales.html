@@ -257,6 +257,28 @@
       border-radius: 10px; object-fit: cover; cursor: pointer;
     }
 
+    /* ── FAB ── */
+    .fab {
+      position: absolute;
+      bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 16px);
+      right: 16px;
+      width: 52px; height: 52px;
+      border-radius: 50%;
+      background: var(--blue);
+      color: white;
+      font-size: 28px;
+      font-weight: 300;
+      line-height: 1;
+      border: none;
+      box-shadow: 0 4px 16px rgba(0,59,122,0.45);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      z-index: 100;
+      transition: opacity 0.15s;
+    }
+    .fab:active { opacity: 0.75; }
+    .fab.hidden { display: none; }
+
     /* ── Loading ── */
     .loading { text-align: center; padding: 48px 24px; color: var(--sub); }
     .spinner {
@@ -392,6 +414,44 @@
   </div>
 </div>
 
+<!-- FAB: Add Shop -->
+<button class="fab" id="fab-add" onclick="openAddShopModal()" title="เพิ่มร้านใหม่">+</button>
+
+<!-- Add Shop Modal (bottom sheet) -->
+<div class="modal-overlay" id="add-shop-overlay" onclick="closeAddShopModal(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🏪 เพิ่มร้านใหม่</div>
+    <div class="modal-shop">GPS ณ จุดนี้จะเป็นตำแหน่งของร้าน</div>
+
+    <div class="gps-status gps-loading" id="add-gps-status">
+      <span>📡</span> กำลังระบุตำแหน่ง...
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">🏪 ชื่อร้าน <span style="color:var(--red)">*</span></label>
+      <input type="text" class="form-input" id="add-name" placeholder="ชื่อร้านค้า" autocomplete="off" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">📍 ที่อยู่</label>
+      <input type="text" class="form-input" id="add-address" placeholder="ที่อยู่ (ไม่บังคับ)" autocomplete="off" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">👤 ชื่อผู้ติดต่อ</label>
+      <input type="text" class="form-input" id="add-contact" placeholder="ชื่อผู้ติดต่อ (ไม่บังคับ)" autocomplete="off" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">📞 เบอร์โทร</label>
+      <input type="tel" class="form-input" id="add-phone" placeholder="เบอร์โทร (ไม่บังคับ)" autocomplete="off" />
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeAddShopDirect()">ยกเลิก</button>
+      <button class="btn btn-checkin" id="add-shop-btn" onclick="submitAddShop()" disabled>บันทึก</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
@@ -437,6 +497,7 @@
     });
     document.getElementById('page-today').classList.toggle('active', tab === 'today');
     document.getElementById('page-history').classList.toggle('active', tab === 'history');
+    document.getElementById('fab-add').classList.toggle('hidden', tab !== 'today');
     if (tab === 'history') loadHistory();
   }
 
@@ -674,6 +735,77 @@
     } catch (err) {
       showToast('❌ เกิดข้อผิดพลาด: ' + err.message);
       btn.disabled = false;
+    }
+  }
+
+  // ── Add Shop Modal ────────────────────────────────────
+  let addGps = null;
+
+  function openAddShopModal() {
+    addGps = null;
+    ['add-name', 'add-address', 'add-contact', 'add-phone'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('add-shop-btn').disabled = true;
+    document.getElementById('add-shop-btn').textContent = 'บันทึก';
+    document.getElementById('add-shop-overlay').classList.add('open');
+    getAddGPS();
+  }
+
+  function closeAddShopModal(e) { if (e.target === document.getElementById('add-shop-overlay')) closeAddShopDirect(); }
+  function closeAddShopDirect() { document.getElementById('add-shop-overlay').classList.remove('open'); }
+
+  function getAddGPS() {
+    const el = document.getElementById('add-gps-status');
+    el.className = 'gps-status gps-loading';
+    el.innerHTML = '<span>📡</span> กำลังระบุตำแหน่งร้าน...';
+    if (!navigator.geolocation) {
+      el.className = 'gps-status gps-far';
+      el.innerHTML = '<span>❌</span> ไม่รองรับ GPS';
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(pos => {
+      addGps = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy };
+      el.className = 'gps-status gps-ok';
+      el.innerHTML = `<span>✅</span> ได้ตำแหน่ง (±${Math.round(addGps.accuracy)}m)`;
+      document.getElementById('add-shop-btn').disabled = false;
+    }, () => {
+      el.className = 'gps-status gps-far';
+      el.innerHTML = '<span>❌</span> ไม่สามารถระบุตำแหน่งได้';
+    }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+  }
+
+  async function submitAddShop() {
+    if (!addGps) { showToast('❌ รอระบุ GPS ก่อน'); return; }
+    const name = document.getElementById('add-name').value.trim();
+    if (!name) { showToast('❌ กรุณาใส่ชื่อร้าน'); return; }
+
+    const btn = document.getElementById('add-shop-btn');
+    btn.disabled = true;
+    btn.textContent = 'กำลังบันทึก...';
+
+    try {
+      const { data, error } = await db.rpc('sales_add_shop', {
+        p_line_user_id:  S.session.line_user_id,
+        p_name:          name,
+        p_address:       document.getElementById('add-address').value.trim() || null,
+        p_lat:           addGps.lat,
+        p_lng:           addGps.lng,
+        p_accuracy:      addGps.accuracy,
+        p_contact_name:  document.getElementById('add-contact').value.trim() || null,
+        p_contact_phone: document.getElementById('add-phone').value.trim() || null,
+      });
+      if (error || !data?.ok) {
+        showToast('❌ บันทึกไม่สำเร็จ: ' + (data?.reason || error?.message || ''));
+        btn.disabled = false;
+        btn.textContent = 'บันทึก';
+        return;
+      }
+      closeAddShopDirect();
+      showToast(`✅ เพิ่มร้าน "${name}" สำเร็จ!`);
+      await loadToday();
+    } catch (err) {
+      showToast('❌ เกิดข้อผิดพลาด: ' + err.message);
+      btn.disabled = false;
+      btn.textContent = 'บันทึก';
     }
   }
 
