@@ -2,69 +2,107 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>SCG — ลงทะเบียน</title>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     body {
       font-family: 'Noto Sans Thai', sans-serif;
       background: #003B7A;
-      min-height: 100vh;
-      display: flex; align-items: center; justify-content: center;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: env(safe-area-inset-top) 24px env(safe-area-inset-bottom);
     }
     .wrap {
-      width: 100%; max-width: 360px;
-      padding: 32px 24px;
+      width: 100%;
+      max-width: 390px;
       text-align: center;
       color: white;
     }
-    .logo { font-size: 42px; font-weight: 900; letter-spacing: -2px; margin-bottom: 4px; }
+    .logo { font-size: 42px; font-weight: 900; letter-spacing: -2px; line-height: 1; margin-bottom: 4px; }
     .logo span { color: #F5A623; }
-    .subtitle { font-size: 14px; opacity: 0.7; margin-bottom: 32px; }
+    .subtitle { font-size: 13px; opacity: 0.55; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 36px; }
 
+    /* Loading state */
+    #loading-state { padding: 16px 0; }
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid rgba(255,255,255,0.2);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #status-text { font-size: 14px; opacity: 0.65; }
+
+    /* Register card */
     .card {
-      background: white; border-radius: 16px;
-      padding: 24px; text-align: left;
+      background: white;
+      border-radius: 20px;
+      padding: 28px 24px;
+      text-align: left;
       color: #1A1A2E;
     }
-    .card-title { font-size: 17px; font-weight: 800; margin-bottom: 6px; }
-    .card-sub   { font-size: 13px; color: #6B7280; margin-bottom: 20px; line-height: 1.5; }
-
-    .form-label { font-size: 12px; font-weight: 700; color: #374151; margin-bottom: 6px; display: block; }
+    .card-title {
+      font-size: 18px; font-weight: 800;
+      margin-bottom: 6px;
+    }
+    .card-sub {
+      font-size: 13px; color: #6B7280;
+      margin-bottom: 24px; line-height: 1.6;
+    }
+    .form-label {
+      font-size: 12px; font-weight: 700;
+      color: #374151; margin-bottom: 8px; display: block;
+    }
     .form-input {
-      width: 100%; border: 1.5px solid #E5E7EB;
-      border-radius: 10px; padding: 12px 14px;
-      font-size: 16px; font-family: inherit; outline: none;
-      transition: border-color 0.2s; letter-spacing: 1px;
+      width: 100%;
+      border: 1.5px solid #E5E7EB;
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-size: 18px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+      letter-spacing: 2px;
+      color: #1A1A2E;
+      -webkit-appearance: none;
     }
     .form-input:focus { border-color: #003B7A; }
 
     .btn-submit {
       width: 100%; margin-top: 16px;
-      padding: 14px; border: none; border-radius: 10px;
+      padding: 16px;
+      border: none; border-radius: 12px;
       background: #003B7A; color: white;
-      font-size: 15px; font-weight: 700; font-family: inherit;
-      cursor: pointer; transition: opacity 0.2s;
+      font-size: 16px; font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      min-height: 52px;
+      transition: opacity 0.2s;
+      -webkit-user-select: none; user-select: none;
     }
     .btn-submit:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-submit:active:not(:disabled) { opacity: 0.85; }
 
     .error-msg {
-      margin-top: 12px; padding: 10px 14px;
-      background: #FEE2E2; border-radius: 8px;
+      margin-top: 12px; padding: 12px 14px;
+      background: #FEE2E2; border-radius: 10px;
       color: #DC2626; font-size: 13px; font-weight: 600;
-      display: none;
+      display: none; line-height: 1.5;
     }
-    .spinner {
-      width: 28px; height: 28px;
-      border: 3px solid rgba(255,255,255,0.3); border-top-color: white;
-      border-radius: 50%; animation: spin 0.8s linear infinite;
-      margin: 0 auto 10px;
+
+    .hint {
+      margin-top: 20px;
+      font-size: 12px; color: #6B7280;
+      text-align: center; line-height: 1.5;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    #loading-state { padding: 16px 0; }
-    #status-text { font-size: 14px; opacity: 0.8; }
   </style>
 </head>
 <body>
@@ -79,13 +117,14 @@
 
     <div class="card" id="register-card" style="display:none">
       <div class="card-title">ลงทะเบียนเข้าใช้งาน</div>
-      <div class="card-sub">กรอกเบอร์โทรศัพท์ที่แจ้งไว้กับผู้จัดการ เพื่อเชื่อมบัญชี LINE ของคุณ</div>
+      <div class="card-sub">กรอกเบอร์โทรศัพท์ที่ผู้จัดการบันทึกไว้ในระบบ เพื่อเชื่อมบัญชี LINE ของคุณ</div>
       <label class="form-label">เบอร์โทรศัพท์</label>
       <input type="tel" class="form-input" id="phone-input"
         placeholder="0812345678" maxlength="10"
         inputmode="numeric" pattern="[0-9]*" />
       <div class="error-msg" id="error-msg"></div>
       <button class="btn-submit" id="submit-btn" onclick="doLink()">ยืนยันและเข้าสู่ระบบ</button>
+      <div class="hint">หากยังไม่มีบัญชีในระบบ กรุณาติดต่อผู้จัดการ</div>
     </div>
   </div>
 
@@ -108,12 +147,10 @@
     function hideError() { document.getElementById('error-msg').style.display = 'none'; }
 
     async function init() {
-      // If LINE ID already passed via query string (from index.html redirect), skip LIFF init
       if (lineUserId) {
         showRegisterForm();
         return;
       }
-
       try {
         await liff.init({ liffId: LIFF_ID });
         if (!liff.isLoggedIn()) { liff.login(); return; }
@@ -131,7 +168,7 @@
     function showRegisterForm() {
       document.getElementById('loading-state').style.display = 'none';
       document.getElementById('register-card').style.display = 'block';
-      document.getElementById('phone-input').focus();
+      setTimeout(() => document.getElementById('phone-input').focus(), 100);
     }
 
     async function doLink() {
@@ -164,7 +201,6 @@
       location.replace(data.role === 'manager' ? 'manager.html' : 'sales.html');
     }
 
-    // Allow submit with Enter key
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('phone-input').addEventListener('keydown', e => {
         if (e.key === 'Enter') doLink();

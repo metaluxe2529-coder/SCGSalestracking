@@ -2,28 +2,37 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>SCG Sales — My Shops</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     :root {
       --blue: #003B7A;
       --blue-light: #0056B3;
       --gold: #F5A623;
       --green: #27AE60;
       --red: #E74C3C;
-      --gray: #F5F7FA;
+      --gray: #F2F4F8;
       --text: #1A1A2E;
       --sub: #6B7280;
+      --border: #E5E7EB;
+      --nav-h: 60px;
     }
-    body { font-family: 'Noto Sans Thai', sans-serif; background: var(--gray); color: var(--text); min-height: 100vh; }
+    body {
+      font-family: 'Noto Sans Thai', sans-serif;
+      background: var(--gray);
+      color: var(--text);
+      min-height: 100dvh;
+      -webkit-overflow-scrolling: touch;
+    }
 
-    /* Header */
+    /* ── Header ── */
     .header {
       background: var(--blue);
       color: white;
-      padding: 16px 20px;
+      padding: 14px 16px;
+      padding-top: calc(14px + env(safe-area-inset-top));
       display: flex;
       align-items: center;
       gap: 12px;
@@ -35,143 +44,113 @@
       width: 40px; height: 40px;
       border-radius: 50%;
       border: 2px solid var(--gold);
-      object-fit: cover;
       background: var(--blue-light);
       display: flex; align-items: center; justify-content: center;
       font-weight: 700; font-size: 16px; color: white;
-      overflow: hidden;
+      overflow: hidden; flex-shrink: 0;
     }
     .header-avatar img { width: 100%; height: 100%; object-fit: cover; }
-    .header-info { flex: 1; }
-    .header-name { font-weight: 700; font-size: 15px; }
-    .header-role { font-size: 12px; opacity: 0.7; }
-    .header-date { font-size: 12px; text-align: right; opacity: 0.8; }
+    .header-info { flex: 1; min-width: 0; }
+    .header-name { font-weight: 700; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .header-role { font-size: 11px; opacity: 0.65; margin-top: 1px; }
+    .header-date { font-size: 11px; opacity: 0.7; text-align: right; flex-shrink: 0; }
 
-    /* Tabs */
-    .tabs {
-      display: flex;
-      background: white;
-      border-bottom: 2px solid #E5E7EB;
-    }
-    .tab {
-      flex: 1;
-      padding: 12px;
-      text-align: center;
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--sub);
-      cursor: pointer;
-      border-bottom: 3px solid transparent;
-      margin-bottom: -2px;
-      transition: all 0.2s;
-    }
-    .tab.active { color: var(--blue); border-bottom-color: var(--blue); }
-
-    /* Content */
-    .page { display: none; }
+    /* ── Pages ── */
+    .page { display: none; padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 8px); }
     .page.active { display: block; }
-    .container { padding: 16px; max-width: 480px; margin: 0 auto; }
+    .container { padding: 14px 16px; }
 
-    /* Summary Bar */
+    /* ── Summary ── */
     .summary-bar {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 10px;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
     }
     .summary-card {
       background: white;
-      border-radius: 12px;
-      padding: 12px;
+      border-radius: 14px;
+      padding: 14px 10px;
       text-align: center;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
     }
-    .summary-num { font-size: 24px; font-weight: 900; }
-    .summary-num.blue { color: var(--blue); }
+    .summary-num { font-size: 26px; font-weight: 900; line-height: 1; }
+    .summary-num.blue  { color: var(--blue); }
     .summary-num.green { color: var(--green); }
-    .summary-num.gold { color: var(--gold); }
-    .summary-label { font-size: 11px; color: var(--sub); margin-top: 2px; }
+    .summary-num.gold  { color: var(--gold); }
+    .summary-label { font-size: 11px; color: var(--sub); margin-top: 4px; }
 
-    /* Shop Card */
+    /* ── Shop Card ── */
     .shop-card {
       background: white;
-      border-radius: 12px;
-      margin-bottom: 12px;
+      border-radius: 14px;
+      margin-bottom: 10px;
       overflow: hidden;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-      border-left: 4px solid #E5E7EB;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      border-left: 4px solid var(--border);
     }
-    .shop-card.not-visited { border-left-color: #E5E7EB; }
     .shop-card.checked-in  { border-left-color: var(--gold); }
     .shop-card.checked-out { border-left-color: var(--green); }
 
     .shop-card-top {
-      padding: 14px 16px;
+      padding: 14px 14px 10px;
       display: flex;
       align-items: flex-start;
       gap: 12px;
     }
     .shop-icon {
-      width: 42px; height: 42px;
-      border-radius: 10px;
+      width: 44px; height: 44px;
+      border-radius: 12px;
       background: var(--blue);
       display: flex; align-items: center; justify-content: center;
-      font-size: 20px;
-      flex-shrink: 0;
+      font-size: 20px; flex-shrink: 0;
     }
     .shop-info { flex: 1; min-width: 0; }
-    .shop-name { font-weight: 700; font-size: 15px; margin-bottom: 2px; }
-    .shop-address { font-size: 12px; color: var(--sub); }
+    .shop-name { font-weight: 700; font-size: 15px; margin-bottom: 3px; }
+    .shop-address { font-size: 12px; color: var(--sub); line-height: 1.4; }
     .shop-contact { font-size: 12px; color: var(--sub); margin-top: 2px; }
-    .shop-status-badge {
-      font-size: 11px;
-      font-weight: 600;
-      padding: 3px 8px;
-      border-radius: 20px;
-      white-space: nowrap;
-    }
-    .badge-pending  { background: #F3F4F6; color: #6B7280; }
-    .badge-in       { background: #FEF3C7; color: #D97706; }
-    .badge-out      { background: #D1FAE5; color: #059669; }
 
-    .shop-card-footer {
-      padding: 0 16px 14px;
-      display: flex;
-      gap: 8px;
+    .shop-status-badge {
+      font-size: 11px; font-weight: 700;
+      padding: 4px 10px; border-radius: 20px;
+      white-space: nowrap; flex-shrink: 0;
     }
-    .btn {
-      flex: 1;
-      padding: 10px;
-      border: none;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: opacity 0.2s;
-    }
-    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    .btn-checkin  { background: var(--blue); color: white; }
-    .btn-checkout { background: var(--green); color: white; }
-    .btn-outline  { background: white; color: var(--sub); border: 1px solid #E5E7EB; }
-    .btn-sm { font-size: 12px; padding: 7px 10px; flex: none; }
+    .badge-pending { background: #F3F4F6; color: #6B7280; }
+    .badge-in      { background: #FEF3C7; color: #D97706; }
+    .badge-out     { background: #D1FAE5; color: #059669; }
 
     .checkin-time {
-      font-size: 11px;
-      color: var(--sub);
-      padding: 0 16px 10px;
+      font-size: 11px; color: var(--sub);
+      padding: 0 14px 10px;
     }
+    .shop-card-footer {
+      padding: 0 14px 14px;
+    }
+    .btn {
+      width: 100%;
+      padding: 13px;
+      border: none; border-radius: 10px;
+      font-size: 14px; font-weight: 700;
+      font-family: inherit;
+      cursor: pointer; min-height: 48px;
+      transition: opacity 0.15s;
+      -webkit-user-select: none; user-select: none;
+    }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn:active:not(:disabled) { opacity: 0.8; }
+    .btn-checkin  { background: var(--blue); color: white; }
+    .btn-checkout { background: var(--green); color: white; }
+    .btn-outline  { background: white; color: var(--sub); border: 1.5px solid var(--border); }
 
-    /* Empty */
+    /* ── Empty ── */
     .empty {
-      text-align: center;
-      padding: 60px 24px;
-      color: var(--sub);
+      text-align: center; padding: 60px 24px; color: var(--sub);
     }
     .empty-icon { font-size: 48px; margin-bottom: 12px; }
     .empty-title { font-size: 16px; font-weight: 700; margin-bottom: 6px; color: var(--text); }
-    .empty-sub { font-size: 14px; }
+    .empty-sub { font-size: 13px; }
 
-    /* Modal overlay */
+    /* ── Bottom Sheet Modal ── */
     .modal-overlay {
       display: none;
       position: fixed; inset: 0;
@@ -183,131 +162,134 @@
     .modal-overlay.open { display: flex; }
     .modal {
       background: white;
-      border-radius: 20px 20px 0 0;
+      border-radius: 24px 24px 0 0;
       width: 100%;
-      max-width: 480px;
-      padding: 24px 20px 32px;
-      animation: slideUp 0.3s ease;
+      padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
+      animation: slideUp 0.28s ease;
     }
     @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
     .modal-handle {
-      width: 40px; height: 4px;
-      background: #E5E7EB;
-      border-radius: 2px;
-      margin: 0 auto 20px;
+      width: 36px; height: 4px;
+      background: #E5E7EB; border-radius: 2px;
+      margin: 0 auto 18px;
     }
-    .modal-title { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
-    .modal-shop  { font-size: 14px; color: var(--sub); margin-bottom: 20px; }
+    .modal-title { font-size: 18px; font-weight: 800; margin-bottom: 3px; }
+    .modal-shop  { font-size: 13px; color: var(--sub); margin-bottom: 18px; }
 
     .form-group { margin-bottom: 14px; }
-    .form-label { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px; display: block; }
+    .form-label { font-size: 13px; font-weight: 600; margin-bottom: 6px; display: block; }
     .form-input, .form-textarea {
       width: 100%;
-      border: 1.5px solid #E5E7EB;
-      border-radius: 8px;
-      padding: 10px 12px;
-      font-size: 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 16px;
       font-family: inherit;
       outline: none;
       transition: border-color 0.2s;
+      -webkit-appearance: none;
+      color: var(--text);
     }
     .form-input:focus, .form-textarea:focus { border-color: var(--blue); }
-    .form-textarea { resize: none; height: 80px; }
+    .form-textarea { resize: none; height: 80px; font-size: 14px; }
 
     .photo-preview {
-      width: 100%;
-      height: 140px;
-      border: 2px dashed #D1D5DB;
-      border-radius: 10px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      color: var(--sub);
-      font-size: 13px;
-      gap: 6px;
-      overflow: hidden;
-      position: relative;
+      width: 100%; height: 130px;
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      cursor: pointer; color: var(--sub);
+      font-size: 13px; gap: 6px;
+      overflow: hidden; position: relative;
     }
-    .photo-preview img {
-      width: 100%; height: 100%;
-      object-fit: cover;
-      position: absolute; inset: 0;
-    }
+    .photo-preview img { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; }
     .photo-preview.has-photo { border: none; }
-    .photo-preview-icon { font-size: 28px; }
+    .photo-preview-icon { font-size: 26px; }
 
     .gps-status {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 14px;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 600;
-      margin-bottom: 14px;
+      display: flex; align-items: center; gap: 8px;
+      padding: 11px 14px; border-radius: 10px;
+      font-size: 13px; font-weight: 600; margin-bottom: 14px;
     }
     .gps-loading { background: #F3F4F6; color: var(--sub); }
     .gps-ok      { background: #D1FAE5; color: #059669; }
     .gps-far     { background: #FEE2E2; color: #DC2626; }
 
-    .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 16px; }
+    .modal-actions .btn { width: auto; flex: 1; }
 
-    /* History */
+    /* ── History ── */
     .history-card {
-      background: white;
-      border-radius: 12px;
-      margin-bottom: 10px;
-      padding: 14px 16px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      background: white; border-radius: 14px;
+      margin-bottom: 10px; padding: 14px 14px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
     }
     .history-card-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 8px;
+      display: flex; justify-content: space-between;
+      align-items: flex-start; margin-bottom: 8px;
     }
     .history-shop { font-weight: 700; font-size: 14px; }
-    .history-time { font-size: 12px; color: var(--sub); }
-    .history-detail { font-size: 12px; color: var(--sub); margin-top: 4px; }
-    .history-photos { display: flex; gap: 8px; margin-top: 8px; }
+    .history-time { font-size: 11px; color: var(--sub); }
+    .history-detail { font-size: 12px; color: var(--sub); margin-top: 4px; line-height: 1.5; }
+    .history-photos { display: flex; gap: 8px; margin-top: 10px; }
     .history-photo {
-      width: 60px; height: 60px;
-      border-radius: 8px;
-      object-fit: cover;
-      cursor: pointer;
+      width: 64px; height: 64px;
+      border-radius: 10px; object-fit: cover; cursor: pointer;
     }
 
-    /* Loading */
-    .loading { text-align: center; padding: 40px; color: var(--sub); }
+    /* ── Loading ── */
+    .loading { text-align: center; padding: 48px 24px; color: var(--sub); }
     .spinner {
-      width: 32px; height: 32px;
-      border: 3px solid #E5E7EB;
-      border-top-color: var(--blue);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
+      width: 28px; height: 28px;
+      border: 3px solid var(--border); border-top-color: var(--blue);
+      border-radius: 50%; animation: spin 0.8s linear infinite;
       margin: 0 auto 12px;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* Toast */
+    /* ── Toast ── */
     .toast {
-      position: fixed;
-      bottom: 24px; left: 50%;
-      transform: translateX(-50%);
-      background: #1A1A2E;
-      color: white;
-      padding: 12px 20px;
-      border-radius: 24px;
-      font-size: 14px;
-      font-weight: 600;
-      z-index: 999;
-      opacity: 0;
-      transition: opacity 0.3s;
-      white-space: nowrap;
+      position: fixed; bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 12px);
+      left: 16px; right: 16px;
+      background: #1A1A2E; color: white;
+      padding: 13px 20px; border-radius: 14px;
+      font-size: 14px; font-weight: 600;
+      z-index: 999; opacity: 0;
+      transition: opacity 0.25s;
+      text-align: center;
+      pointer-events: none;
     }
     .toast.show { opacity: 1; }
+
+    /* ── Bottom Navigation ── */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: white;
+      border-top: 1px solid var(--border);
+      display: flex;
+      height: calc(var(--nav-h) + env(safe-area-inset-bottom));
+      padding-bottom: env(safe-area-inset-bottom);
+      z-index: 100;
+    }
+    .nav-item {
+      flex: 1;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 4px;
+      color: #9CA3AF;
+      cursor: pointer;
+      border: none; background: none;
+      font-family: inherit;
+      padding: 8px 4px;
+      transition: color 0.15s;
+      -webkit-user-select: none; user-select: none;
+    }
+    .nav-item.active { color: var(--blue); }
+    .nav-item:active { opacity: 0.7; }
+    .nav-icon { font-size: 22px; line-height: 1; }
+    .nav-label { font-size: 10px; font-weight: 700; }
   </style>
 </head>
 <body>
@@ -324,13 +306,7 @@
   <div class="header-date" id="hdr-date"></div>
 </div>
 
-<!-- Tabs -->
-<div class="tabs">
-  <div class="tab active" onclick="switchTab('today')">📋 วันนี้</div>
-  <div class="tab" onclick="switchTab('history')">📅 ประวัติ</div>
-</div>
-
-<!-- Today Tab -->
+<!-- Today Page -->
 <div class="page active" id="page-today">
   <div class="container">
     <div class="summary-bar">
@@ -353,7 +329,7 @@
   </div>
 </div>
 
-<!-- History Tab -->
+<!-- History Page -->
 <div class="page" id="page-history">
   <div class="container">
     <div id="history-list">
@@ -362,7 +338,7 @@
   </div>
 </div>
 
-<!-- Check-in / Check-out Modal -->
+<!-- Check-in / Check-out Modal (bottom sheet) -->
 <div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -396,6 +372,18 @@
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
+<!-- Bottom Navigation -->
+<nav class="bottom-nav">
+  <button class="nav-item active" onclick="switchTab('today')">
+    <span class="nav-icon">🏠</span>
+    <span class="nav-label">วันนี้</span>
+  </button>
+  <button class="nav-item" onclick="switchTab('history')">
+    <span class="nav-icon">📅</span>
+    <span class="nav-label">ประวัติ</span>
+  </button>
+</nav>
+
 <script>
   const SUPABASE_URL  = 'https://vuqcoadeexyqmaoldkzt.supabase.co';
   const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1cWNvYWRlZXh5cW1hb2xka3p0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2NzE2NjQsImV4cCI6MjA5NjI0NzY2NH0.jLnRNjI7wq6fJ_hFUpO2OZiN39wQAsU-IhrYC8DOZsU';
@@ -408,7 +396,6 @@
     const raw = localStorage.getItem('scg_session');
     S.session = raw ? JSON.parse(raw) : { line_user_id: 'dev', display_name: 'Test Sales', picture_url: null, staff_id: 1, role: 'sales' };
 
-    // Header
     document.getElementById('hdr-name').textContent = S.session.display_name;
     document.getElementById('hdr-initial').textContent = S.session.display_name[0] || 'S';
     if (S.session.picture_url) {
@@ -422,7 +409,7 @@
 
   // ── Tab Switch ────────────────────────────────────────
   function switchTab(tab) {
-    document.querySelectorAll('.tab').forEach((t, i) => {
+    document.querySelectorAll('.nav-item').forEach((t, i) => {
       t.classList.toggle('active', (i === 0 && tab === 'today') || (i === 1 && tab === 'history'));
     });
     document.getElementById('page-today').classList.toggle('active', tab === 'today');
@@ -466,7 +453,7 @@
 
     document.getElementById('shops-list').innerHTML = S.shops.map(shop => {
       const status = !shop.visit_id ? 'not-visited' : shop.visit_status === 'checked_out' ? 'checked-out' : 'checked-in';
-      const badge  = status === 'not-visited' ? '<span class="shop-status-badge badge-pending">⬜ ยังไม่เยี่ยม</span>'
+      const badge  = status === 'not-visited' ? '<span class="shop-status-badge badge-pending">ยังไม่เยี่ยม</span>'
                    : status === 'checked-in'  ? '<span class="shop-status-badge badge-in">🟡 Check-in แล้ว</span>'
                    :                            '<span class="shop-status-badge badge-out">✅ เสร็จแล้ว</span>';
       const timeRow = shop.checkin_at
@@ -576,7 +563,7 @@
       el.className = 'gps-status gps-ok';
       el.innerHTML = `<span>✅</span> ระบุตำแหน่งได้ (±${Math.round(S.gps.accuracy)}m)`;
       document.getElementById('modal-submit-btn').disabled = false;
-    }, err => {
+    }, () => {
       el.className = 'gps-status gps-far';
       el.innerHTML = '<span>❌</span> ไม่สามารถระบุตำแหน่งได้ — ลองใหม่';
     }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });

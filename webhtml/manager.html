@@ -2,102 +2,179 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>SCG Manager Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     :root {
       --blue: #003B7A;
       --blue-light: #0056B3;
       --gold: #F5A623;
       --green: #27AE60;
       --red: #E74C3C;
-      --gray: #F5F7FA;
+      --gray: #F2F4F8;
       --text: #1A1A2E;
       --sub: #6B7280;
       --border: #E5E7EB;
+      --nav-h: 64px;
     }
-    body { font-family: 'Noto Sans Thai', sans-serif; background: var(--gray); color: var(--text); min-height: 100vh; }
+    body {
+      font-family: 'Noto Sans Thai', sans-serif;
+      background: var(--gray);
+      color: var(--text);
+      min-height: 100dvh;
+      -webkit-overflow-scrolling: touch;
+    }
 
-    /* Header */
+    /* ── Header ── */
     .header {
-      background: var(--blue);
-      color: white;
-      padding: 14px 20px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
+      background: var(--blue); color: white;
+      padding: 14px 16px;
+      padding-top: calc(14px + env(safe-area-inset-top));
+      display: flex; align-items: center; gap: 12px;
       position: sticky; top: 0; z-index: 100;
     }
     .header-avatar {
       width: 38px; height: 38px; border-radius: 50%;
-      border: 2px solid var(--gold);
-      overflow: hidden; display: flex; align-items: center; justify-content: center;
-      font-weight: 700; font-size: 15px; color: white; background: var(--blue-light); flex-shrink: 0;
+      border: 2px solid var(--gold); overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 15px; color: white;
+      background: var(--blue-light); flex-shrink: 0;
     }
     .header-avatar img { width: 100%; height: 100%; object-fit: cover; }
-    .header-info { flex: 1; }
-    .header-name { font-weight: 700; font-size: 14px; }
-    .header-role { font-size: 11px; opacity: 0.7; }
-    .header-tag {
+    .header-info { flex: 1; min-width: 0; }
+    .header-name { font-weight: 700; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .header-sub  { font-size: 11px; opacity: 0.65; margin-top: 1px; }
+    .header-tag  {
       background: var(--gold); color: #1A1A2E;
-      font-size: 11px; font-weight: 700;
-      padding: 3px 8px; border-radius: 12px;
-    }
-
-    /* Tabs */
-    .tabs { display: flex; background: white; border-bottom: 2px solid var(--border); overflow-x: auto; }
-    .tab {
+      font-size: 11px; font-weight: 800;
+      padding: 3px 10px; border-radius: 20px;
       flex-shrink: 0;
-      padding: 11px 16px;
-      font-size: 13px; font-weight: 600;
-      color: var(--sub); cursor: pointer;
-      border-bottom: 3px solid transparent; margin-bottom: -2px;
-      white-space: nowrap; transition: all 0.2s;
     }
-    .tab.active { color: var(--blue); border-bottom-color: var(--blue); }
 
-    .page { display: none; }
+    /* ── Pages ── */
+    .page { display: none; padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 8px); }
     .page.active { display: block; }
-    .container { padding: 16px; max-width: 480px; margin: 0 auto; }
+    .container { padding: 14px 16px; }
 
-    /* Cards */
+    /* ── Card ── */
     .card {
-      background: white; border-radius: 12px;
-      padding: 16px; margin-bottom: 14px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      background: white; border-radius: 14px;
+      padding: 16px; margin-bottom: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
     }
-    .card-title { font-size: 15px; font-weight: 800; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+    .card-title {
+      font-size: 15px; font-weight: 800;
+      margin-bottom: 14px;
+      display: flex; align-items: center; gap: 8px;
+    }
 
-    /* Buttons */
+    /* ── Buttons ── */
     .btn {
-      padding: 9px 16px; border: none; border-radius: 8px;
-      font-size: 13px; font-weight: 700; cursor: pointer;
-      transition: opacity 0.2s; display: inline-flex; align-items: center; gap: 6px;
+      padding: 10px 16px; border: none; border-radius: 10px;
+      font-size: 13px; font-weight: 700; font-family: inherit;
+      cursor: pointer; min-height: 44px;
+      display: inline-flex; align-items: center; gap: 6px;
+      transition: opacity 0.15s;
+      -webkit-user-select: none; user-select: none;
     }
     .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn:active:not(:disabled) { opacity: 0.8; }
     .btn-primary  { background: var(--blue); color: white; }
     .btn-success  { background: var(--green); color: white; }
     .btn-danger   { background: var(--red); color: white; }
-    .btn-outline  { background: white; color: var(--sub); border: 1px solid var(--border); }
+    .btn-outline  { background: white; color: var(--sub); border: 1.5px solid var(--border); }
     .btn-gold     { background: var(--gold); color: #1A1A2E; }
-    .btn-sm { font-size: 12px; padding: 6px 10px; }
+    .btn-sm { font-size: 12px; padding: 7px 12px; min-height: 36px; }
 
-    /* Forms */
+    /* ── Forms ── */
     .form-row { display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px; }
     .form-group { flex: 1; min-width: 0; }
-    .form-label { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 4px; display: block; }
+    .form-label { font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 5px; display: block; }
     .form-input, .form-select, .form-textarea {
       width: 100%; border: 1.5px solid var(--border);
-      border-radius: 8px; padding: 9px 12px;
-      font-size: 13px; font-family: inherit; outline: none;
-      transition: border-color 0.2s;
+      border-radius: 10px; padding: 11px 12px;
+      font-size: 16px; font-family: inherit; outline: none;
+      transition: border-color 0.2s; -webkit-appearance: none;
+      color: var(--text);
     }
     .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--blue); }
-    .form-textarea { resize: none; height: 70px; }
+    .form-textarea { resize: none; height: 70px; font-size: 14px; }
+    .form-select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%236B7280' d='M1 1l5 5 5-5'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
 
-    /* Table */
+    /* ── Filter Bar ── */
+    .filter-bar { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+
+    /* ── Summary Pills ── */
+    .summary-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+    .pill {
+      background: white; border-radius: 20px;
+      padding: 8px 14px; font-size: 13px; font-weight: 700;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .pill span { font-size: 17px; font-weight: 900; margin-right: 4px; }
+    .pill.blue span  { color: var(--blue); }
+    .pill.green span { color: var(--green); }
+    .pill.gold span  { color: var(--gold); }
+
+    /* ── List Items ── */
+    .list-item {
+      border: 1px solid var(--border); border-radius: 12px;
+      padding: 12px 14px; margin-bottom: 10px;
+      background: white;
+    }
+    .list-item-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+    .list-item-sub  { font-size: 12px; color: var(--sub); margin-top: 3px; }
+
+    /* ── Visit Card ── */
+    .visit-card {
+      border: 1px solid var(--border); border-radius: 12px;
+      padding: 12px 14px; margin-bottom: 10px; background: white;
+    }
+    .visit-card-head  { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .visit-card-shop  { font-weight: 700; font-size: 14px; margin-bottom: 6px; }
+    .visit-card-times { display: flex; gap: 8px; font-size: 12px; color: var(--sub); flex-wrap: wrap; }
+    .visit-card-notes { font-size: 11px; color: var(--sub); margin-top: 6px; line-height: 1.5; }
+    .visit-card-photos { display: flex; gap: 6px; margin-top: 8px; }
+    .thumb { width: 48px; height: 48px; border-radius: 8px; object-fit: cover; cursor: pointer; }
+
+    /* ── Staff Chip ── */
+    .staff-chip { display: inline-flex; align-items: center; gap: 8px; }
+    .staff-chip img, .chip-avatar {
+      width: 28px; height: 28px; border-radius: 50%; object-fit: cover;
+      background: var(--blue-light); color: white;
+      font-size: 12px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* ── Badge ── */
+    .badge {
+      display: inline-block; padding: 3px 10px;
+      border-radius: 20px; font-size: 11px; font-weight: 700;
+    }
+    .badge-in   { background: #FEF3C7; color: #D97706; }
+    .badge-out  { background: #D1FAE5; color: #059669; }
+    .badge-none { background: #F3F4F6; color: #6B7280; }
+
+    /* ── CSV Drop Zone ── */
+    .drop-zone {
+      border: 2px dashed var(--border); border-radius: 14px;
+      padding: 32px 20px; text-align: center; cursor: pointer;
+      color: var(--sub); transition: border-color 0.2s, background 0.2s;
+    }
+    .drop-zone:hover, .drop-zone.drag-over { border-color: var(--blue); background: #EEF4FF; }
+    .drop-zone-icon { font-size: 36px; margin-bottom: 8px; }
+    .drop-zone-text { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+    .drop-zone-sub  { font-size: 12px; }
+    .import-preview { max-height: 220px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; margin-top: 12px; }
+
+    /* ── Staff Detail ── */
+    .staff-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px; }
+    .staff-detail-grid label { font-size: 11px; color: var(--sub); display: block; margin-bottom: 3px; }
+
+    /* ── Table ── */
     .tbl-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
     th {
@@ -106,164 +183,91 @@
       color: var(--sub); border-bottom: 1px solid var(--border);
       white-space: nowrap;
     }
-    td {
-      padding: 10px 12px; border-bottom: 1px solid #F3F4F6;
-      vertical-align: middle;
-    }
+    td { padding: 10px 12px; border-bottom: 1px solid #F3F4F6; vertical-align: middle; }
     tr:last-child td { border-bottom: none; }
-    tr:hover td { background: #FAFBFC; }
 
-    .badge {
-      display: inline-block; padding: 2px 8px;
-      border-radius: 12px; font-size: 11px; font-weight: 700;
-    }
-    .badge-in  { background: #FEF3C7; color: #D97706; }
-    .badge-out { background: #D1FAE5; color: #059669; }
-    .badge-none { background: #F3F4F6; color: #6B7280; }
-
-    /* Photo thumb */
-    .thumb {
-      width: 44px; height: 44px; border-radius: 6px;
-      object-fit: cover; cursor: pointer;
-    }
-
-    /* Staff avatar tiny */
-    .staff-chip {
-      display: inline-flex; align-items: center; gap: 6px;
-    }
-    .staff-chip img, .staff-chip .chip-avatar {
-      width: 26px; height: 26px; border-radius: 50%; object-fit: cover;
-      background: var(--blue-light); color: white; font-size: 11px;
-      display: flex; align-items: center; justify-content: center; font-weight: 700;
-    }
-
-    /* Filter bar */
-    .filter-bar {
-      display: flex; flex-direction: column; gap: 10px;
-      margin-bottom: 14px;
-    }
-    .filter-bar .form-group { min-width: 0; }
-
-    /* CSV drop zone */
-    .drop-zone {
-      border: 2px dashed var(--border);
-      border-radius: 12px;
-      padding: 32px;
-      text-align: center;
-      cursor: pointer;
-      color: var(--sub);
-      transition: border-color 0.2s, background 0.2s;
-    }
-    .drop-zone:hover, .drop-zone.drag-over {
-      border-color: var(--blue); background: #EEF4FF;
-    }
-    .drop-zone-icon { font-size: 36px; margin-bottom: 8px; }
-    .drop-zone-text { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
-    .drop-zone-sub  { font-size: 12px; }
-
-    /* Preview rows (import) */
-    .import-preview {
-      max-height: 220px; overflow-y: auto;
-      border: 1px solid var(--border); border-radius: 8px;
-      margin-top: 12px;
-    }
-
-    /* Loading / empty */
-    .loading { text-align: center; padding: 40px; color: var(--sub); }
+    /* ── Loading / Empty ── */
+    .loading { text-align: center; padding: 48px 24px; color: var(--sub); }
     .spinner {
       width: 28px; height: 28px;
       border: 3px solid var(--border); border-top-color: var(--blue);
       border-radius: 50%; animation: spin 0.8s linear infinite;
-      margin: 0 auto 10px;
+      margin: 0 auto 12px;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .empty { text-align: center; padding: 40px 24px; color: var(--sub); }
+    .empty { text-align: center; padding: 48px 24px; color: var(--sub); }
     .empty-icon { font-size: 40px; margin-bottom: 10px; }
 
-    /* Summary pills */
-    .summary-row {
-      display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px;
-    }
-    .pill {
-      background: white; border-radius: 20px;
-      padding: 8px 16px; font-size: 13px; font-weight: 700;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-    }
-    .pill span { font-size: 18px; font-weight: 900; margin-right: 4px; }
-    .pill.blue span { color: var(--blue); }
-    .pill.green span { color: var(--green); }
-    .pill.gold span  { color: var(--gold); }
-
-    /* Modal */
+    /* ── Modal ── */
     .modal-overlay {
       display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,0.45); z-index: 200;
-      align-items: center; justify-content: center; padding: 20px;
+      background: rgba(0,0,0,0.5); z-index: 200;
+      align-items: flex-end; justify-content: center;
     }
     .modal-overlay.open { display: flex; }
     .modal {
-      background: white; border-radius: 16px;
-      width: 100%; max-width: 420px;
-      padding: 24px; animation: fadeIn 0.2s;
+      background: white; border-radius: 24px 24px 0 0;
+      width: 100%;
+      padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
+      animation: slideUp 0.28s ease;
     }
-    @keyframes fadeIn { from { opacity:0; transform: scale(0.96); } to { opacity:1; transform: scale(1); } }
-    .modal-title { font-size: 17px; font-weight: 800; margin-bottom: 16px; }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    .modal-handle { width: 36px; height: 4px; background: #E5E7EB; border-radius: 2px; margin: 0 auto 18px; }
+    .modal-title  { font-size: 17px; font-weight: 800; margin-bottom: 16px; }
     .modal-actions { display: flex; gap: 10px; margin-top: 18px; justify-content: flex-end; }
 
-    /* Toast */
+    /* ── Toast ── */
     .toast {
-      position: fixed; bottom: 20px; left: 50%;
-      transform: translateX(-50%);
+      position: fixed; bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 12px);
+      left: 16px; right: 16px;
       background: #1A1A2E; color: white;
-      padding: 11px 20px; border-radius: 24px;
+      padding: 13px 20px; border-radius: 14px;
       font-size: 13px; font-weight: 600;
-      z-index: 999; opacity: 0; transition: opacity 0.3s;
-      white-space: nowrap; pointer-events: none;
+      z-index: 999; opacity: 0; transition: opacity 0.25s;
+      text-align: center; pointer-events: none;
     }
     .toast.show { opacity: 1; }
 
-    /* Mobile cards */
-    .visit-card {
-      border: 1px solid var(--border); border-radius: 10px;
-      padding: 12px; margin-bottom: 10px; background: white;
+    /* ── Bottom Navigation ── */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: white; border-top: 1px solid var(--border);
+      display: flex;
+      height: calc(var(--nav-h) + env(safe-area-inset-bottom));
+      padding-bottom: env(safe-area-inset-bottom);
+      z-index: 100;
     }
-    .visit-card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-    .visit-card-shop { font-weight: 700; font-size: 14px; margin-bottom: 6px; }
-    .visit-card-times { display: flex; gap: 10px; font-size: 12px; color: var(--sub); flex-wrap: wrap; }
-    .visit-card-notes { font-size: 11px; color: var(--sub); margin-top: 6px; }
-    .visit-card-photos { display: flex; gap: 6px; margin-top: 8px; }
-
-    .list-item {
-      border: 1px solid var(--border); border-radius: 10px;
-      padding: 12px 14px; margin-bottom: 10px;
+    .nav-item {
+      flex: 1;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 3px;
+      color: #9CA3AF;
+      cursor: pointer; border: none; background: none;
+      font-family: inherit;
+      padding: 6px 2px;
+      transition: color 0.15s;
+      -webkit-user-select: none; user-select: none;
     }
-    .list-item-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
-    .list-item-sub { font-size: 12px; color: var(--sub); margin-top: 2px; }
-
-    .staff-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px; }
-    .staff-detail-grid label { font-size: 11px; color: var(--sub); display: block; }
+    .nav-item.active { color: var(--blue); }
+    .nav-item:active { opacity: 0.7; }
+    .nav-icon  { font-size: 20px; line-height: 1; }
+    .nav-label { font-size: 10px; font-weight: 700; }
   </style>
 </head>
 <body>
 
+<!-- Header -->
 <div class="header">
   <div class="header-avatar" id="hdr-avatar"><span id="hdr-initial">M</span></div>
   <div class="header-info">
     <div class="header-name" id="hdr-name">Manager</div>
-    <div class="header-role" id="hdr-date"></div>
+    <div class="header-sub" id="hdr-date"></div>
   </div>
   <div class="header-tag">👔 Manager</div>
 </div>
 
-<div class="tabs">
-  <div class="tab active" onclick="switchTab('history')">📋 ประวัติการเยี่ยม</div>
-  <div class="tab" onclick="switchTab('assign')">📅 มอบหมาย</div>
-  <div class="tab" onclick="switchTab('shops')">🏪 ร้านค้า</div>
-  <div class="tab" onclick="switchTab('import')">📤 นำเข้า CSV</div>
-  <div class="tab" onclick="switchTab('staff')">👥 พนักงาน</div>
-</div>
-
-<!-- ── Tab: History ──────────────────────────────────── -->
+<!-- ── Tab: History ── -->
 <div class="page active" id="page-history">
   <div class="container">
     <div class="card">
@@ -290,8 +294,7 @@
           </select>
         </div>
         <div>
-          <label class="form-label">&nbsp;</label>
-          <button class="btn btn-primary" onclick="loadHistory()">🔍 ค้นหา</button>
+          <button class="btn btn-primary" style="width:100%" onclick="loadHistory()">🔍 ค้นหา</button>
         </div>
       </div>
 
@@ -308,7 +311,7 @@
   </div>
 </div>
 
-<!-- ── Tab: Assign ───────────────────────────────────── -->
+<!-- ── Tab: Assign ── -->
 <div class="page" id="page-assign">
   <div class="container">
     <div class="card">
@@ -331,8 +334,7 @@
           </select>
         </div>
         <div>
-          <label class="form-label">&nbsp;</label>
-          <button class="btn btn-success" onclick="createAssignment()">➕ มอบหมาย</button>
+          <button class="btn btn-success" style="width:100%" onclick="createAssignment()">➕ มอบหมาย</button>
         </div>
       </div>
     </div>
@@ -345,8 +347,7 @@
           <input type="date" class="form-input" id="asgn-view-date" />
         </div>
         <div>
-          <label class="form-label">&nbsp;</label>
-          <button class="btn btn-outline" onclick="loadAssignments()">🔍 ดู</button>
+          <button class="btn btn-outline" style="width:100%" onclick="loadAssignments()">🔍 ดู</button>
         </div>
       </div>
       <div id="asgn-list">
@@ -356,7 +357,7 @@
   </div>
 </div>
 
-<!-- ── Tab: Shops ────────────────────────────────────── -->
+<!-- ── Tab: Shops ── -->
 <div class="page" id="page-shops">
   <div class="container">
     <div class="card">
@@ -370,15 +371,14 @@
   </div>
 </div>
 
-<!-- ── Tab: Import ───────────────────────────────────── -->
+<!-- ── Tab: Import ── -->
 <div class="page" id="page-import">
   <div class="container">
     <div class="card">
       <div class="card-title">📤 นำเข้าร้านค้าจาก CSV</div>
-      <p style="font-size:13px;color:var(--sub);margin-bottom:16px;">
-        ไฟล์ CSV ต้องมีคอลัมน์: <strong>name, lat, lng</strong> (จำเป็น) และ <strong>address, contact_name, contact_phone</strong> (ไม่บังคับ)
+      <p style="font-size:13px;color:var(--sub);margin-bottom:16px;line-height:1.6">
+        ต้องมีคอลัมน์: <strong>name, lat, lng</strong> (จำเป็น) และ <strong>address, contact_name, contact_phone</strong> (ไม่บังคับ)
       </p>
-
       <div class="drop-zone" id="drop-zone" onclick="document.getElementById('csv-input').click()"
            ondragover="event.preventDefault();this.classList.add('drag-over')"
            ondragleave="this.classList.remove('drag-over')"
@@ -398,27 +398,27 @@
         </div>
         <div style="display:flex;gap:10px;margin-top:12px;align-items:center">
           <span id="preview-count" style="font-size:13px;color:var(--sub);flex:1"></span>
-          <button class="btn btn-outline" onclick="clearImport()">ล้าง</button>
-          <button class="btn btn-success" id="import-btn" onclick="doImport()">✅ นำเข้า</button>
+          <button class="btn btn-outline btn-sm" onclick="clearImport()">ล้าง</button>
+          <button class="btn btn-success btn-sm" id="import-btn" onclick="doImport()">✅ นำเข้า</button>
         </div>
       </div>
     </div>
 
     <div class="card" style="font-size:13px;color:var(--sub)">
       <div class="card-title" style="font-size:14px">📝 ตัวอย่าง CSV</div>
-      <pre style="background:#F3F4F6;padding:12px;border-radius:8px;overflow-x:auto;font-size:12px;line-height:1.6">name,address,lat,lng,contact_name,contact_phone
-ร้านข้าวต้มเมืองทอง,15/3 ถ.สุขุมวิท กรุงเทพ,13.7563,100.5018,สมชาย,0812345678
+      <pre style="background:#F3F4F6;padding:12px;border-radius:8px;overflow-x:auto;font-size:11px;line-height:1.7">name,address,lat,lng,contact_name,contact_phone
+ร้านข้าวต้มเมืองทอง,15/3 ถ.สุขุมวิท,13.7563,100.5018,สมชาย,0812345678
 ร้านอาหารทะเล Ocean,พัทยา ชลบุรี,12.9272,100.8770,,</pre>
     </div>
   </div>
 </div>
 
-<!-- ── Tab: Staff ─────────────────────────────────── -->
+<!-- ── Tab: Staff ── -->
 <div class="page" id="page-staff">
   <div class="container">
     <div class="card">
       <div class="card-title">👥 จัดการพนักงาน
-        <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="openAddStaff()">➕ เพิ่มพนักงาน</button>
+        <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="openAddStaff()">➕ เพิ่ม</button>
       </div>
       <div id="staff-list">
         <div class="loading"><div class="spinner"></div>กำลังโหลด...</div>
@@ -427,9 +427,10 @@
   </div>
 </div>
 
-<!-- Modal: Add Shop manually -->
+<!-- Modal: Add Shop -->
 <div class="modal-overlay" id="shop-modal" onclick="if(event.target===this)closeShopModal()">
   <div class="modal">
+    <div class="modal-handle"></div>
     <div class="modal-title">➕ เพิ่มร้านค้า</div>
     <div class="form-group" style="margin-bottom:10px">
       <label class="form-label">ชื่อร้าน *</label>
@@ -439,7 +440,7 @@
       <label class="form-label">ที่อยู่</label>
       <input type="text" class="form-input" id="sm-address" placeholder="ที่อยู่" />
     </div>
-    <div class="form-row">
+    <div class="form-row" style="flex-direction:row">
       <div class="form-group">
         <label class="form-label">Latitude *</label>
         <input type="number" step="any" class="form-input" id="sm-lat" placeholder="13.7563" />
@@ -449,14 +450,14 @@
         <input type="number" step="any" class="form-input" id="sm-lng" placeholder="100.5018" />
       </div>
     </div>
-    <div class="form-row">
+    <div class="form-row" style="flex-direction:row">
       <div class="form-group">
         <label class="form-label">ชื่อผู้ติดต่อ</label>
         <input type="text" class="form-input" id="sm-contact" placeholder="ชื่อ" />
       </div>
       <div class="form-group">
         <label class="form-label">เบอร์โทร</label>
-        <input type="text" class="form-input" id="sm-phone" placeholder="08x-xxx-xxxx" />
+        <input type="tel" class="form-input" id="sm-phone" placeholder="08x-xxx-xxxx" />
       </div>
     </div>
     <div class="modal-actions">
@@ -469,6 +470,7 @@
 <!-- Modal: Add Staff -->
 <div class="modal-overlay" id="staff-modal" onclick="if(event.target===this)closeStaffModal()">
   <div class="modal">
+    <div class="modal-handle"></div>
     <div class="modal-title">➕ เพิ่มพนักงาน</div>
     <div class="form-group" style="margin-bottom:10px">
       <label class="form-label">ชื่อที่แสดง *</label>
@@ -494,6 +496,30 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- Bottom Navigation -->
+<nav class="bottom-nav">
+  <button class="nav-item active" onclick="switchTab('history')">
+    <span class="nav-icon">📋</span>
+    <span class="nav-label">ประวัติ</span>
+  </button>
+  <button class="nav-item" onclick="switchTab('assign')">
+    <span class="nav-icon">📅</span>
+    <span class="nav-label">มอบหมาย</span>
+  </button>
+  <button class="nav-item" onclick="switchTab('shops')">
+    <span class="nav-icon">🏪</span>
+    <span class="nav-label">ร้านค้า</span>
+  </button>
+  <button class="nav-item" onclick="switchTab('import')">
+    <span class="nav-icon">📤</span>
+    <span class="nav-label">นำเข้า</span>
+  </button>
+  <button class="nav-item" onclick="switchTab('staff')">
+    <span class="nav-icon">👥</span>
+    <span class="nav-label">พนักงาน</span>
+  </button>
+</nav>
+
 <script>
   const SUPABASE_URL  = 'https://vuqcoadeexyqmaoldkzt.supabase.co';
   const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1cWNvYWRlZXh5cW1hb2xka3p0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2NzE2NjQsImV4cCI6MjA5NjI0NzY2NH0.jLnRNjI7wq6fJ_hFUpO2OZiN39wQAsU-IhrYC8DOZsU';
@@ -513,12 +539,11 @@
     }
     document.getElementById('hdr-date').textContent = new Date().toLocaleDateString('th-TH', { weekday:'long', day:'numeric', month:'long' });
 
-    // Default dates
     const today = new Date().toISOString().slice(0, 10);
-    document.getElementById('hist-from').value    = sub30d(today);
-    document.getElementById('hist-to').value      = today;
-    document.getElementById('asgn-date').value    = today;
-    document.getElementById('asgn-view-date').value = today;
+    document.getElementById('hist-from').value       = sub30d(today);
+    document.getElementById('hist-to').value         = today;
+    document.getElementById('asgn-date').value       = today;
+    document.getElementById('asgn-view-date').value  = today;
 
     await Promise.all([loadStaff(), loadShops()]);
     await Promise.all([loadHistory(), loadAssignments()]);
@@ -529,20 +554,20 @@
     return d.toISOString().slice(0, 10);
   }
 
-  // ── Tab switch ───────────────────────────────────────
+  // ── Tab Switch ───────────────────────────────────────
   function switchTab(tab) {
-    document.querySelectorAll('.tab').forEach((t, i) => {
-      const tabs = ['history', 'assign', 'shops', 'import', 'staff'];
+    const tabs = ['history', 'assign', 'shops', 'import', 'staff'];
+    document.querySelectorAll('.nav-item').forEach((t, i) => {
       t.classList.toggle('active', tabs[i] === tab);
     });
-    ['history', 'assign', 'shops', 'import', 'staff'].forEach(id => {
+    tabs.forEach(id => {
       document.getElementById('page-' + id).classList.toggle('active', id === tab);
     });
     if (tab === 'shops') loadShopsList();
     if (tab === 'staff') loadStaffList();
   }
 
-  // ── Load staff + shops (for dropdowns) ───────────────
+  // ── Load Staff + Shops (for dropdowns) ───────────────
   async function loadStaff() {
     const { data } = await db.from('staff').select('id, display_name, picture_url, role').eq('is_active', true).order('display_name');
     S.salesStaff = (data || []).filter(s => s.role === 'sales');
@@ -603,9 +628,9 @@
         <div class="visit-card-head">
           <div class="staff-chip">
             ${v.staff_picture
-              ? `<img src="${v.staff_picture}" style="width:26px;height:26px;border-radius:50%;object-fit:cover">`
-              : `<div style="width:26px;height:26px;border-radius:50%;background:var(--blue-light);color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center">${(v.staff_name||'?')[0]}</div>`}
-            ${esc(v.staff_name)}
+              ? `<img src="${v.staff_picture}" style="width:28px;height:28px;border-radius:50%;object-fit:cover">`
+              : `<div style="width:28px;height:28px;border-radius:50%;background:var(--blue-light);color:white;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">${(v.staff_name||'?')[0]}</div>`}
+            <span style="font-weight:600;font-size:13px">${esc(v.staff_name)}</span>
           </div>
           ${v.status === 'checked_out'
             ? '<span class="badge badge-out">✅ เสร็จ</span>'
@@ -653,38 +678,34 @@
     document.getElementById('asgn-list').innerHTML = rows.map(a => `
       <div class="list-item">
         <div class="list-item-head">
-          <div>
+          <div style="flex:1;min-width:0">
             <strong>${esc(a.shop?.name)}</strong>
             ${a.shop?.address ? `<div class="list-item-sub">${esc(a.shop.address)}</div>` : ''}
           </div>
           <button class="btn btn-danger btn-sm" onclick="deleteAssignment(${a.id})">🗑</button>
         </div>
-        <div class="staff-chip" style="margin-top:8px">
+        <div class="staff-chip" style="margin-top:10px">
           ${a.staff?.picture_url
             ? `<img src="${a.staff.picture_url}" style="width:26px;height:26px;border-radius:50%;object-fit:cover">`
             : `<div style="width:26px;height:26px;border-radius:50%;background:var(--blue-light);color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center">${(a.staff?.display_name||'?')[0]}</div>`}
-          ${esc(a.staff?.display_name)}
+          <span style="font-size:13px">${esc(a.staff?.display_name)}</span>
         </div>
       </div>`).join('');
   }
 
   async function createAssignment() {
-    const date   = document.getElementById('asgn-date').value;
+    const date    = document.getElementById('asgn-date').value;
     const staffId = document.getElementById('asgn-staff').value;
     const shopId  = document.getElementById('asgn-shop').value;
     if (!date || !staffId || !shopId) { showToast('❌ กรุณากรอกข้อมูลให้ครบ'); return; }
 
     const { data, error } = await db.rpc('create_assignment', {
-      p_line_user_id: S.session.line_user_id,
-      p_shop_id:      parseInt(shopId),
-      p_staff_id:     parseInt(staffId),
+      p_line_user_id:  S.session.line_user_id,
+      p_shop_id:       parseInt(shopId),
+      p_staff_id:      parseInt(staffId),
       p_assigned_date: date,
     });
-
-    if (error || !data?.ok) {
-      showToast('❌ ' + (data?.reason || error?.message || 'ไม่สำเร็จ'));
-      return;
-    }
+    if (error || !data?.ok) { showToast('❌ ' + (data?.reason || error?.message || 'ไม่สำเร็จ')); return; }
     showToast('✅ มอบหมายสำเร็จ');
     loadAssignments();
   }
@@ -699,12 +720,12 @@
     else showToast('❌ ลบไม่ได้');
   }
 
-  // ── Shops list ────────────────────────────────────────
+  // ── Shops List ────────────────────────────────────────
   async function loadShopsList() {
     document.getElementById('shops-list').innerHTML = '<div class="loading"><div class="spinner"></div>กำลังโหลด...</div>';
     const { data, error } = await db.from('shops').select('*').eq('is_active', true).order('name');
     if (error || !data?.length) {
-      document.getElementById('shops-list').innerHTML = '<div class="empty"><div class="empty-icon">🏪</div>ยังไม่มีร้านค้า — นำเข้าจาก CSV หรือเพิ่มด้วยตนเอง</div>';
+      document.getElementById('shops-list').innerHTML = '<div class="empty"><div class="empty-icon">🏪</div>ยังไม่มีร้านค้า</div>';
       return;
     }
     document.getElementById('shops-list').innerHTML = data.map(s => `
@@ -733,11 +754,10 @@
     const { error } = await db.from('shops').insert({
       name, address: document.getElementById('sm-address').value.trim() || null,
       lat, lng,
-      contact_name: document.getElementById('sm-contact').value.trim() || null,
+      contact_name:  document.getElementById('sm-contact').value.trim() || null,
       contact_phone: document.getElementById('sm-phone').value.trim() || null,
       imported_by: S.session.staff_id,
     });
-
     if (error) { showToast('❌ ' + error.message); return; }
     showToast('✅ เพิ่มร้านสำเร็จ');
     closeShopModal();
@@ -764,24 +784,19 @@
     reader.onload = ev => {
       const lines  = ev.target.result.trim().split('\n');
       const header = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/^"|"$/g, ''));
-
       const idx = k => header.findIndex(h => h === k);
       const cols = {
         name: idx('name'), address: idx('address'),
         lat: idx('lat'), lng: idx('lng'),
         contact_name: idx('contact_name'), contact_phone: idx('contact_phone'),
       };
-
       if (cols.name < 0 || cols.lat < 0 || cols.lng < 0) {
-        showToast('❌ ไม่พบคอลัมน์ name, lat หรือ lng');
-        return;
+        showToast('❌ ไม่พบคอลัมน์ name, lat หรือ lng'); return;
       }
-
       S.importRows = [];
       const tbody = document.getElementById('preview-body');
       tbody.innerHTML = '';
-
-      lines.slice(1).forEach((line, i) => {
+      lines.slice(1).forEach((line) => {
         if (!line.trim()) return;
         const cells = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
         const row = {
@@ -798,7 +813,6 @@
         tr.innerHTML = `<td>${S.importRows.length}</td><td>${esc(row.name)}</td><td>${esc(row.address||'')}</td><td>${row.lat}</td><td>${row.lng}</td><td>${esc(row.contact_name||'')}${row.contact_phone?' · '+esc(row.contact_phone):''}</td>`;
         tbody.appendChild(tr);
       });
-
       document.getElementById('preview-count').textContent = `${S.importRows.length} ร้านที่พร้อมนำเข้า`;
       document.getElementById('import-preview').style.display = 'block';
     };
@@ -815,18 +829,12 @@
     if (!S.importRows.length) return;
     const btn = document.getElementById('import-btn');
     btn.disabled = true; btn.textContent = 'กำลังนำเข้า...';
-
     const { data, error } = await db.rpc('import_shops', {
       p_line_user_id: S.session.line_user_id,
       p_shops: S.importRows,
     });
-
     btn.disabled = false; btn.textContent = '✅ นำเข้า';
-
-    if (error || !data?.ok) {
-      showToast('❌ ' + (data?.reason || error?.message || 'ไม่สำเร็จ'));
-      return;
-    }
+    if (error || !data?.ok) { showToast('❌ ' + (data?.reason || error?.message || 'ไม่สำเร็จ')); return; }
     showToast(`✅ นำเข้าสำเร็จ ${data.inserted} ร้าน (ข้าม ${data.skipped})`);
     clearImport();
     await loadShops();
@@ -850,7 +858,7 @@
               ? `<img src="${s.picture_url}" style="width:36px;height:36px;border-radius:50%;object-fit:cover">`
               : `<div style="width:36px;height:36px;border-radius:50%;background:var(--blue-light);color:white;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center">${(s.display_name||'?')[0]}</div>`}
             <div>
-              <div style="font-weight:600">${esc(s.display_name)}</div>
+              <div style="font-weight:600;font-size:14px">${esc(s.display_name)}</div>
               ${s.nickname ? `<div style="font-size:11px;color:var(--sub)">(${esc(s.nickname)})</div>` : ''}
             </div>
           </div>
@@ -860,30 +868,30 @@
           </button>
         </div>
         <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
-          <select class="form-select" style="flex:1;padding:6px 10px;font-size:13px"
+          <select class="form-select" style="flex:1;padding:8px 12px;font-size:14px"
             onchange="updateStaffRole(${s.id}, this.value)">
-            <option value="sales"   ${s.role === 'sales'   ? 'selected' : ''}>Sales</option>
-            <option value="manager" ${s.role === 'manager' ? 'selected' : ''}>Manager</option>
+            <option value="sales"   ${s.role === 'sales'   ? 'selected' : ''}>🧑 Sales</option>
+            <option value="manager" ${s.role === 'manager' ? 'selected' : ''}>👔 Manager</option>
           </select>
           <span class="badge ${s.is_active ? 'badge-out' : 'badge-none'}">
             ${s.is_active ? '✅ ใช้งาน' : '🚫 ระงับ'}
           </span>
         </div>
-        <div id="staff-detail-${s.id}" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+        <div id="staff-detail-${s.id}" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
           <div class="staff-detail-grid">
             <div style="grid-column:1/-1">
               <label>เบอร์มือถือ (ใช้ลงทะเบียน)</label>
               <div style="display:flex;gap:8px;align-items:center;margin-top:4px">
                 <input type="tel" class="form-input" id="phone-${s.id}"
                   value="${esc(s.phone||'')}" placeholder="0812345678"
-                  style="flex:1;padding:7px 10px;font-size:13px" />
+                  style="flex:1;padding:9px 12px;font-size:15px" />
                 <button class="btn btn-primary btn-sm" onclick="saveStaffPhone(${s.id})">บันทึก</button>
               </div>
             </div>
             <div style="grid-column:1/-1">
               <label>LINE ID</label>
               <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
-                <span style="font-size:11px;word-break:break-all;flex:1">${s.line_user_id ? esc(s.line_user_id) : '<span style="color:var(--sub)">(ยังไม่ได้ลงทะเบียน)</span>'}</span>
+                <span style="font-size:11px;word-break:break-all;flex:1;color:var(--sub)">${s.line_user_id ? esc(s.line_user_id) : '(ยังไม่ได้ลงทะเบียน)'}</span>
                 ${s.line_user_id ? `<button class="btn btn-danger btn-sm" onclick="clearLineId(${s.id})">🔄 ล้าง</button>` : ''}
               </div>
             </div>
@@ -895,8 +903,7 @@
   function toggleStaffExpand(id) {
     const detail = document.getElementById('staff-detail-' + id);
     if (!detail) return;
-    const isOpen = detail.style.display !== 'none';
-    detail.style.display = isOpen ? 'none' : 'block';
+    detail.style.display = detail.style.display !== 'none' ? 'none' : 'block';
   }
 
   async function updateStaffRole(staffId, newRole) {
@@ -907,8 +914,7 @@
     });
     if (error || !data?.ok) {
       showToast('❌ เปลี่ยน Role ไม่สำเร็จ: ' + (data?.reason || error?.message || 'ไม่ทราบสาเหตุ'));
-      loadStaffList();
-      return;
+      loadStaffList(); return;
     }
     showToast(`✅ เปลี่ยน Role เป็น ${newRole} แล้ว`);
     await loadStaff();
@@ -933,7 +939,6 @@
       p_role:         role,
       p_phone:        phone || null,
     });
-
     if (error || !data?.ok) { showToast('❌ ' + (data?.reason || error?.message || 'ไม่สำเร็จ')); return; }
     showToast('✅ เพิ่มพนักงานแล้ว');
     closeStaffModal();
