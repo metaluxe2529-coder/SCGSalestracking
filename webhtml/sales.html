@@ -21,10 +21,30 @@
     }
     body {
       font-family: 'Noto Sans Thai', sans-serif;
+      background: #0d1420;
+      min-height: 100dvh;
+      display: flex;
+      justify-content: center;
+    }
+    .app {
+      width: 100%;
+      max-width: 390px;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
       background: var(--gray);
       color: var(--text);
-      min-height: 100dvh;
+      overflow: hidden;
+      position: relative;
+    }
+    @media (min-width: 480px) {
+      .app { box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 24px 80px rgba(0,0,0,0.7); }
+    }
+    .scroll-area {
+      flex: 1;
+      overflow-y: auto;
       -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
     }
 
     /* ── Header ── */
@@ -36,9 +56,8 @@
       display: flex;
       align-items: center;
       gap: 12px;
-      position: sticky;
-      top: 0;
-      z-index: 100;
+      flex-shrink: 0;
+      z-index: 10;
     }
     .header-avatar {
       width: 40px; height: 40px;
@@ -56,7 +75,7 @@
     .header-date { font-size: 11px; opacity: 0.7; text-align: right; flex-shrink: 0; }
 
     /* ── Pages ── */
-    .page { display: none; padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 8px); }
+    .page { display: none; }
     .page.active { display: block; }
     .container { padding: 14px 16px; }
 
@@ -250,8 +269,10 @@
 
     /* ── Toast ── */
     .toast {
-      position: fixed; bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 12px);
-      left: 16px; right: 16px;
+      position: fixed;
+      bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 12px);
+      left: 50%; transform: translateX(-50%);
+      width: calc(min(390px, 100vw) - 32px);
       background: #1A1A2E; color: white;
       padding: 13px 20px; border-radius: 14px;
       font-size: 14px; font-weight: 600;
@@ -264,14 +285,12 @@
 
     /* ── Bottom Navigation ── */
     .bottom-nav {
-      position: fixed;
-      bottom: 0; left: 0; right: 0;
+      flex-shrink: 0;
       background: white;
       border-top: 1px solid var(--border);
       display: flex;
       height: calc(var(--nav-h) + env(safe-area-inset-bottom));
       padding-bottom: env(safe-area-inset-bottom);
-      z-index: 100;
     }
     .nav-item {
       flex: 1;
@@ -293,6 +312,7 @@
   </style>
 </head>
 <body>
+<div class="app">
 
 <!-- Header -->
 <div class="header">
@@ -306,6 +326,7 @@
   <div class="header-date" id="hdr-date"></div>
 </div>
 
+<div class="scroll-area">
 <!-- Today Page -->
 <div class="page active" id="page-today">
   <div class="container">
@@ -337,6 +358,8 @@
     </div>
   </div>
 </div>
+
+</div><!-- end scroll-area -->
 
 <!-- Check-in / Check-out Modal (bottom sheet) -->
 <div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
@@ -671,5 +694,6 @@
 
   init();
 </script>
+</div><!-- end app -->
 </body>
 </html>

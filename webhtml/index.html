@@ -10,17 +10,32 @@
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     body {
       font-family: 'Noto Sans Thai', sans-serif;
-      background: #003B7A;
+      background: #0d1420;
       min-height: 100dvh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .app {
+      width: 100%;
+      max-width: 390px;
+      min-height: 100dvh;
+      background: #003B7A;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       padding: env(safe-area-inset-top) 24px env(safe-area-inset-bottom);
+      position: relative;
+    }
+    @media (min-width: 480px) {
+      .app {
+        min-height: 100vh;
+        box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 24px 80px rgba(0,0,0,0.7);
+      }
     }
     .splash {
       width: 100%;
-      max-width: 390px;
       text-align: center;
       color: white;
       padding: 40px 0;
@@ -104,6 +119,7 @@
   </style>
 </head>
 <body>
+<div class="app">
   <div class="splash">
     <div class="logo">SCG<span>.</span></div>
     <div class="subtitle">Sales Tracking</div>
@@ -218,5 +234,6 @@
       loginWithLine();
     }
   </script>
+</div>
 </body>
 </html>
