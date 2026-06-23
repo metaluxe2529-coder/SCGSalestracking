@@ -655,17 +655,38 @@
 
   function triggerPhoto() { document.getElementById('photo-input').click(); }
 
-  function handlePhoto(e) {
+  async function compressPhoto(file) {
+    return new Promise(resolve => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const MAX = 1200;
+        let w = img.width, h = img.height;
+        if (w > MAX || h > MAX) {
+          if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+          else       { w = Math.round(w * MAX / h); h = MAX; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.8);
+      };
+      img.src = url;
+    });
+  }
+
+  async function handlePhoto(e) {
     const file = e.target.files[0];
     if (!file) return;
-    S.photoFile = file;
+    S.photoBlob = await compressPhoto(file);
     const reader = new FileReader();
     reader.onload = ev => {
       const prev = document.getElementById('photo-preview');
       prev.innerHTML = `<img src="${ev.target.result}" />`;
       prev.classList.add('has-photo');
     };
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(S.photoBlob);
   }
 
   async function submitModal() {
@@ -676,10 +697,9 @@
 
     try {
       let photoUrl = null;
-      if (S.photoFile) {
-        const ext  = S.photoFile.name.split('.').pop();
-        const path = `${S.session.staff_id}/${Date.now()}.${ext}`;
-        const { error: upErr } = await db.storage.from('visit-photos').upload(path, S.photoFile, { contentType: S.photoFile.type, upsert: true });
+      if (S.photoBlob) {
+        const path = `visits/${S.session.staff_id}/${Date.now()}.jpg`;
+        const { error: upErr } = await db.storage.from('visit-photos').upload(path, S.photoBlob, { contentType: 'image/jpeg', upsert: true });
         if (!upErr) {
           const { data: urlData } = db.storage.from('visit-photos').getPublicUrl(path);
           photoUrl = urlData?.publicUrl || null;
@@ -717,7 +737,7 @@
       if (res.error || !res.data?.ok) {
         const reason = res.data?.reason || res.error?.message || 'ไม่ทราบสาเหตุ';
         if (reason === 'outside_radius') {
-          showToast(`❌ อยู่นอกรัศมี 200m (ห่าง ${res.data.distance_m}m)`);
+          showToast(`❌ อยู่นอกรัศมี 500m (ห่าง ${res.data.distance_m}m)`);
         } else if (reason === 'already_checked_in_today') {
           showToast('❌ Check-in ที่ร้านนี้แล้ววันนี้');
         } else {

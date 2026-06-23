@@ -19,6 +19,56 @@
 - Schema is in `db/001_schema.sql`, RLS/RPCs in `db/002_rls_and_rpcs.sql`
 - Run SQL via REST API (`/rest/v1/`) or Dashboard SQL Editor
 
+## Database Tables
+- `staff` — LINE users, role `'sales' | 'manager'`, is_active
+- `shops` — prospect shops with GPS (lat/lng), imported_by → staff.id
+- `assignments` — shop_id + staff_id + assigned_date (UNIQUE together)
+- `visits` — check-in/out records; status `'checked_in' | 'checked_out'`; has `checkin_photo_url`, `checkout_photo_url`
+- `sale_records` — visit result `'purchased' | 'not_purchased' | 'appointment'`
+- `sale_record_items` — line items per sale_record
+- `app_config` — key/value config (`line_channel_token` stored here)
+
+## Key RPCs (POST `/rest/v1/rpc/<name>`)
+- `checkin_visit` — GPS-validates 500m radius, notifies managers via LINE, saves photo URL
+- `checkout_visit` — GPS-validates 500m radius, marks visit checked_out
+- `save_sale_record` — saves visit result + items atomically
+- `get_sales_dashboard` — today's assigned shops + visit status for a salesperson
+- `get_visit_history` — manager view of all visits with photos
+- `sales_add_shop` — sales creates new shop, triggers LINE notify
+- `link_line_id` — links LINE user to staff record
+
+## Pages
+| File | Role | Purpose |
+|------|------|---------|
+| `webhtml/index.html` | all | LIFF login + redirect by role |
+| `webhtml/register.html` | all | First-time registration |
+| `webhtml/sales.html` | sales | My shops, check-in/out, sale records |
+| `webhtml/manager.html` | manager | Dashboard, staff management, assignments, visit history |
+| `webhtml/customer_list.html` | manager | Shop/customer list, add shops |
+| `tools/migrate_customers.html` | admin | One-time CSV import tool |
+
+## LINE LIFF
+- LIFF ID: `2010342819-X8uSIn0R` (same for all pages)
+- Auth flow: `liff.init()` → `liff.getProfile()` → lookup staff by `line_user_id`
+- LINE channel token stored in `app_config` table (key: `line_channel_token`)
+- LINE IDs starting with `U` = real; `sp_*` = placeholder (not linked yet)
+
+## Business Rules
+- **GPS radius: 500m** — both check-in and check-out; all RPCs must use 500 and return `max_radius_m: 500`
+- Sales can only see/visit their own assigned shops
+- Managers see all data regardless of staff_id filter
+- LINE push notifications sent to all active managers on check-in and new shop added
+- Timezone: `Asia/Bangkok` (UTC+7) used in all `to_char` calls
+
+## Photo Capture (visits)
+- Use `<input type="file" accept="image/*" capture="environment">` — rear camera, no gallery picker
+- Compress before upload: resize max-side ≤ 1200px, JPEG quality 0.8 via Canvas API (`canvas.toBlob('image/jpeg', 0.8)`)
+- Never send the raw `File` object — always compress first
+- Storage bucket: `visit-photos` (public read, anon upload, 10MB limit) — created in `db/002_rls_and_rpcs.sql`
+- Upload path: `visits/{staff_id}/{Date.now()}.jpg`
+- Public URL: `${SUPABASE_URL}/storage/v1/object/public/visit-photos/{path}`
+- Pass the URL as `p_photo_url` to `checkin_visit` / `checkout_visit`
+
 ## Coding Rules
 
 ### Low blast radius
@@ -49,3 +99,4 @@
 - New rows: INSERT with explicit column list, never `INSERT INTO table VALUES (...)`
 - Always add `WHERE` clause on UPDATE/DELETE — never bare updates
 - New migration files go in `db/` with incremented prefix, e.g. `db/003_add_phone.sql`
+- Latest migration: `db/009_line_notify.sql` — next is `db/010_...sql`
